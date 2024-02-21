@@ -1,5 +1,6 @@
-const transaksiSiswaModel = require('../models/index').transaksi_siswa
-const tamuModel = require('../models/index').tamu
+const transaksiSiswaModel = require('../models/index').transaksi_siswa;
+const tamuModel = require('../models/index').tamu;
+const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
 const uuid = require('uuid');
 const uuid4 = uuid.v4()
@@ -8,24 +9,52 @@ const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
 
+const ITEMS_PER_PAGE = 5;
+
 exports.getAllTransaksiSiswa = async (request, response) => {
-    let transaksiSiswa = await transaksiSiswaModel.findAll()
-    try {
+    try{
+        const page = parseInt(request.query.page) || 1;
+        const offset = (page - 1) * ITEMS_PER_PAGE;
+
+        let transaksiSiswa = await  transaksiSiswaModel.findAll({
+            offset: offset,
+            limit: ITEMS_PER_PAGE,
+            include: [
+                {
+                    model: siswaModel,
+                    require: true
+                },
+                {
+                    model: tamuModel,
+                    require: true
+                },
+            ],
+        });
+
+        const totalItems = await transaksiSiswaModel.count();
+
         if (transaksiSiswa.length === 0) {
             return response.status(404).json({
                 success: false,
                 message: 'Data not found'
             });
         }
-        return response.json({
+
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        return response.status(200).json({
             success: true,
             data: transaksiSiswa,
-            message: 'All Form have been loaded'
-        })
+            pagination: {
+                currentPage: page,
+                totalItems: totalItems,
+                totalPages: totalPages,
+            },
+            message: 'All transaction data siswa have been loaded'
+        });
     } catch (error) {
         console.error(error);
-        console.log(transaksiSiswaModel);
-        return response.status(500).json({ message: error });
+        return response.status(500).json({ message: error.message });
     }
 };
 
