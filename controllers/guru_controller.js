@@ -1,5 +1,5 @@
-const guruModel = require('../models/index').guru
-const Op = require(`sequelize`).Op
+const guruModel = require('../models/index').guru;
+const Op = require(`sequelize`).Op;
 const uuid = require('uuid');
 const uuid4 = uuid.v4()
 
