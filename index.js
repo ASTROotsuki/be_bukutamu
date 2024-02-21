@@ -17,6 +17,9 @@ app.use(`/guru`, guruRoute)
 const transaksiSiswaRoute = require('./routes/transaksiSiswa_routes')
 app.use(`/transaksi_siswa`, transaksiSiswaRoute);
 
+const transaksiKurirRoute = require('./routes/transaksiKurir_routes')
+app.use(`/transaksi_kurir`, transaksiKurirRoute);
+
 
 app.listen(PORT, () => {
   console.log(`Server runs on port ${PORT}`);

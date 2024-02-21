@@ -6,7 +6,7 @@ const transaksiSiswaController = require('../controllers/transaksiSiswa_controll
 //endpoint
 app.get("/get", transaksiSiswaController.getAllTransaksiSiswa)
 app.post("/add",transaksiSiswaController.addTransaksiSiswa)
-app.get("/find",transaksiSiswaController.findTransaksiSiwa)
+app.get("/find",transaksiSiswaController.findTransaksiSiswa)
 app.put("/update/:id", transaksiSiswaController.updateTransaksiSiswa)
 app.delete("/delete/:id", transaksiSiswaController.deleteTransaksiSiswa)
 

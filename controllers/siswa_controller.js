@@ -6,7 +6,7 @@ const uuid4 = uuid.v4()
 exports.getAllSiswa = async (request, response) => {
     let siswa = await siswaModel.findAll()
     try {
-        if (siswa.length === 0) {
+        if (siswa.length === 0) { 
             return response.status(404).json({
                 success: false,
                 message: 'Data not found'
@@ -107,3 +107,7 @@ exports.deleteSiswa = (request, response) => {
             })
         })
 };
+
+
+
+

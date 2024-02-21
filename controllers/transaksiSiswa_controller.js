@@ -29,7 +29,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
     }
 };
 
-exports.findTransaksiSiwa = async (request, response) => {
+exports.findTransaksiSiswa = async (request, response) => {
 
     let keyword = request.body.keyword
 
