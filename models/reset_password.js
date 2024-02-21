@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     id_reset: {
       type: DataTypes.UUID,
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
     },
     email: DataTypes.STRING,
     token: DataTypes.STRING,
