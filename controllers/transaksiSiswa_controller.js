@@ -76,17 +76,20 @@ exports.addTransaksiSiswa = (request, response) => {
             id_siswa: request.body.id_siswa,
             janji: request.body.janji,
             jumlah_tamu: request.body.jumlah_tamu,
-            status: request.body.status,
+            status: "Proses",
             foto: request.file.filename
 
         };
         try {
             await tamuModel.create(newTamu);
-            await transaksiSiswaModel.create(newTransaksiSiswa);
+            const createdTransaksiSiswa = await transaksiSiswaModel.create(newTransaksiSiswa);
+            const kodeUnik = createdTransaksiSiswa.id_transaksiSiswa.slice(-4);
+
 
             return response.json({
                 success: true,
-                message: `New form has been inserted`
+                message: `New form has been inserted`,
+                kode : kodeUnik
             });
         } catch (error) {
             return response.json({
@@ -104,12 +107,9 @@ exports.updateTransaksiSiswa = async (request, response) => {
         }
 
         let id_transaksiSiswa = request.params.id;
-
-        // Define dataTransaksiSiswa as an object
         let dataTransaksiSiswa = {};
 
         if (!request.file) {
-            // If there's no file to upload, update only the relevant fields
             dataTransaksiSiswa = {
                 id_siswa: request.body.id_siswa,
                 janji: request.body.janji,
@@ -117,7 +117,6 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 status: request.body.status,
             };
         } else {
-            // If there's a file to upload, first find the existing transaksi_siswa record
             const selectedTransaksiSiswa = await transaksiSiswaModel.findOne({
                 where: { id_transaksiSiswa: id_transaksiSiswa },
             });
@@ -133,11 +132,8 @@ exports.updateTransaksiSiswa = async (request, response) => {
             const pathImage = path.join(__dirname, `../foto`, oldFotoTransaksiSiswa);
 
             if (fs.existsSync(pathImage)) {
-                // Delete the old image file if it exists
                 fs.unlink(pathImage, (error) => console.log(error));
             }
-
-            // Update the relevant fields and set the new foto
             dataTransaksiSiswa = {
                 id_siswa: request.body.id_siswa,
                 janji: request.body.janji,
@@ -146,8 +142,6 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 foto: request.file.filename,
             };
         }
-
-        // Update the transaksi_siswa record with the new data
         transaksiSiswaModel.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
             .then((result) => {
                 return response.json({
