@@ -29,6 +29,8 @@ const authRoute = require('./routes/auth.routes')
 app.use('/api', authRoute);
 
 
+app.use('/api/transaksi_siswa/media', express.static(path.join(__dirname, 'foto')));
+
 app.listen(PORT, () => {
   console.log(`Server runs on port ${PORT}`);
 });
