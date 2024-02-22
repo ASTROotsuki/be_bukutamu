@@ -1,4 +1,4 @@
-const transaksiSiswaModel = require('../models/index').transaksi_siswa;
+const { transaksi_siswa} = require('../models/index');
 const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
@@ -16,7 +16,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
         const ITEMS_PER_PAGE = (request.query.limit) || 5;
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
-        let transaksiSiswa = await  transaksiSiswaModel.findAll({
+        let transaksiSiswa = await  transaksi_siswa.findAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
             include: [
@@ -31,7 +31,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
             ],
         });
 
-        const totalItems = await transaksiSiswaModel.count();
+        const totalItems = await transaksi_siswa.count();
 
         if (transaksiSiswa.length === 0) {
             return response.status(404).json({
@@ -111,7 +111,7 @@ exports.addTransaksiSiswa = (request, response) => {
         };
         try {
             await tamuModel.create(newTamu);
-            const createdTransaksiSiswa = await transaksiSiswaModel.create(newTransaksiSiswa);
+            const createdTransaksiSiswa = await transaksi_siswa.create(newTransaksiSiswa);
             const kodeUnik = createdTransaksiSiswa.id_transaksiSiswa.slice(-4);
 
 
@@ -146,7 +146,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 status: request.body.status,
             };
         } else {
-            const selectedTransaksiSiswa = await transaksiSiswaModel.findOne({
+            const selectedTransaksiSiswa = await transaksi_siswa.findOne({
                 where: { id_transaksiSiswa: id_transaksiSiswa },
             });
 
@@ -171,7 +171,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 foto: request.file.filename,
             };
         }
-        transaksiSiswaModel.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
+        transaksi_siswa.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
             .then((result) => {
                 return response.json({
                     success: true,
@@ -189,7 +189,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
 
 exports.deleteTransaksiSiswa = async (request, response) => {
     const id_transaksiSiswa = request.params.id
-    const transaksiSiswa = await transaksiSiswaModel.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa }})
+    const transaksiSiswa = await transaksi_siswa.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa }})
     const oldFotoTransaksiSiswa = transaksiSiswa.foto
     const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa)
 
@@ -197,7 +197,7 @@ exports.deleteTransaksiSiswa = async (request, response) => {
         fs.unlink(pathImage, error => console.log(error))
     }
     
-    transaksiSiswaModel.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
+    transaksi_siswa.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
         .then(result => {
             return response.json({
                 success: true,

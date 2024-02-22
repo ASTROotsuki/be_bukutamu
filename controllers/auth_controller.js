@@ -8,14 +8,14 @@ const bodyParser = require('body-parser');
 const db = require('../models');
 require('dotenv').config();
 
-const generateToken = (userId) => {
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '12h' });
+const generateToken = (userId, deviceInfo, expiresIn = '30d') => {
+    const token = jwt.sign({ userId, deviceInfo }, process.env.JWT_SECRET, { expiresIn });
     return token;
 };
 
 exports.login = async (request, response) => {
     if (request.body) {
-        let { email, password } = request.body;
+        let { email, password, deviceInfo } = request.body;
 
         try {
             const user = await adminModel.findOne({ where: { email } });
@@ -30,7 +30,7 @@ exports.login = async (request, response) => {
                 return response.status(401).json({success: 'false', logged: 'false', message: 'Invalid Password' });
             }
     
-            const token = generateToken(user.uuid);
+            const token = generateToken(user.uuid, deviceInfo);
     
             return response.json({ success: 'true', logged: 'true', nama: user.nama_admin, token: token });
         } catch (error) {
