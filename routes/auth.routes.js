@@ -8,6 +8,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // endpoint
 app.post('/login', authController.login)
+app.put('/forgot-password', authController.forgotPassword)
+app.put('/reset-password', authController.resetPassword)
 
 
 module.exports = app;
