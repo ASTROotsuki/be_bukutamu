@@ -9,11 +9,11 @@ const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
 
-const ITEMS_PER_PAGE = 5;
 
 exports.getAllTransaksiSiswa = async (request, response) => {
     try{
         const page = parseInt(request.query.page) || 1;
+        const ITEMS_PER_PAGE = (request.query.limit) || 5;
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
         let transaksiSiswa = await  transaksiSiswaModel.findAll({
