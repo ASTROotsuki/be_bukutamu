@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
     id_siswa: DataTypes.UUID,
     janji: DataTypes.ENUM('Ada', 'TidakAda'),
     jumlah_tamu: DataTypes.INTEGER,
-    status: DataTypes.ENUM('Selesai', 'Proses', 'Gagal'),
+    keterangan: DataTypes.TEXT,
     foto: DataTypes.STRING
   }, {
     sequelize,

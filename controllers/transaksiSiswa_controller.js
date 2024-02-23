@@ -11,14 +11,32 @@ const upload = require('./upload_foto').single(`foto`)
 
 
 exports.getAllTransaksiSiswa = async (request, response) => {
-    try{
+    try {
         const page = parseInt(request.query.page) || 1;
-        const ITEMS_PER_PAGE = (request.query.limit) || 5;
+        const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
-        let transaksiSiswa = await  transaksi_siswa.findAll({
+        const filterOptions = {};
+
+        // Tambahkan filter berdasarkan tanggal
+        if (request.query.startDate && request.query.endDate) {
+            filterOptions.createdAt = {
+                [Op.between]: [new Date(request.query.startDate), new Date(request.query.endDate)],
+            };
+        }
+
+        const searchQuery = request.query.search;
+        if (searchQuery) {
+            filterOptions[Op.or] = [
+                { '$siswa.nama_siswa$': { [Op.like]: `%${searchQuery}%` } },
+                { '$tamu.nama_tamu$': { [Op.like]: `%${searchQuery}%` } }
+            ];
+        }
+
+        let transaksiSiswa = await transaksi_siswa.findAndCountAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
+            where: filterOptions,
             include: [
                 {
                     model: siswaModel,
@@ -31,9 +49,9 @@ exports.getAllTransaksiSiswa = async (request, response) => {
             ],
         });
 
-        const totalItems = await transaksi_siswa.count();
+        const totalItems = transaksiSiswa.count;
 
-        if (transaksiSiswa.length === 0) {
+        if (totalItems === 0) {
             return response.status(404).json({
                 success: false,
                 message: 'Data not found'
@@ -44,7 +62,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         return response.status(200).json({
             success: true,
-            data: transaksiSiswa,
+            data: transaksiSiswa.rows,
             pagination: {
                 currentPage: page,
                 totalItems: totalItems,

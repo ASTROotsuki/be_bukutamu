@@ -27,8 +27,8 @@ module.exports = {
       jumlah_tamu: {
         type: Sequelize.INTEGER
       },
-      status: {
-        type: Sequelize.ENUM('Selesai', 'Proses', 'Gagal')
+      keterangan: {
+        type: Sequelize.TEXT
       },
       foto: {
         type: Sequelize.STRING
