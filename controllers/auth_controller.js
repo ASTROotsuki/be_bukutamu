@@ -48,6 +48,12 @@ const getAdminById = async (id_admin) => {
 const profile = async (req, res) => {
     const token = req.headers.authorization ? req.headers.authorization.split(' ')[1]: null;
 
+    if (token) {
+
+    } else {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
         const adminData = await getAdminById(decodedToken.id_admin);
