@@ -8,43 +8,62 @@ const bodyParser = require('body-parser');
 const db = require('../models');
 require('dotenv').config();
 
-const generateToken = (userId, deviceInfo, expiresIn = '30d') => {
-    const token = jwt.sign({ userId, deviceInfo }, process.env.JWT_SECRET, { expiresIn });
-    return token;
+const generateToken = (adminData) => {
+    return jwt.sign({ id_admin: adminData.id_admin, role: adminData.role }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-exports.login = async (request, response) => {
-    if (request.body) {
-        let { email, password, deviceInfo } = request.body;
+const login = async (req, res) => {
+    const { email, password } = req.body;
 
-        try {
-            const user = await adminModel.findOne({ where: { email } });
-            
-            if (!user) {
-                return response.status(401).json({success: 'false', logged: 'false', message: 'Invalid Email' });
-            }
-    
-            const credential =  await bcrypt.compare(password, user.password);
-    
-            if (!credential) {
-                return response.status(401).json({success: 'false', logged: 'false', message: 'Invalid Password' });
-            }
-    
-            const token = generateToken(user.uuid, deviceInfo);
-    
-            return response.json({ success: 'true', logged: 'true', nama: user.nama_admin, token: token });
-        } catch (error) {
-            console.error(error);
-            return response.status(500).json({ success: false, message: "Internal Server Error" });
+    try {
+        const adminData = await adminModel.findOne({ where: { email } });
+
+        if (!adminData) {
+            return res.status(404).json({ message: 'Admin not found' });
         }
-    } else {
-        response.status(400).json({ error: 'Bad request' });
-    }
 
-    
+        const isPasswordValid = await bcrypt.compare(password, adminData.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid password' });
+        }
+
+        const token = generateToken(adminData);
+
+        return res.status(200).json({ success: true, logged: true, nama: adminData.nama_admin, token});
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
 };
 
-exports.forgotPassword = async (request, response) => {
+const getAdminById = async (id_admin) => {
+    try {
+        return await adminModel.findByPk(id_admin, { attribute: { exclude: ['password'] } });
+    } catch (error) {
+        throw error;
+    }
+};
+
+const profile = async (req, res) => {
+    const token = req.headers.authorization.split(' ')[1];
+
+    try {
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+        const adminData = await getAdminById(decodedToken.id_admin);
+
+        if (!adminData) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+
+        return res.status(200).json(adminData);
+    } catch (error) {
+        console.error(error);
+        return res.status(401).json({ message: 'Invalid token' });
+    }
+};
+
+const forgotPassword = async (request, response) => {
     try {
         const { email } = req.body;
 
@@ -85,7 +104,7 @@ exports.forgotPassword = async (request, response) => {
     }
 };
 
-exports.resetPassword = async (request, response) => {
+const resetPassword = async (request, response) => {
     try {
         const { token, newPassword } = request.body;
 
@@ -156,4 +175,6 @@ async function sendResetEmail(email, token) {
         subject: 'Reset Password',
         text: `Klik link berikut untuk mereset password: http://localhost:8000/api/reset-password/?token=${token}`
     });
-}
+};
+
+module.exports = { login, profile, resetPassword, forgotPassword};
