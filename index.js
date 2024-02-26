@@ -1,15 +1,12 @@
 const express = require(`express`);
+const bodyParser = require('body-parser');
 const app = express();
-const PORT = 8000;
+const PORT = 2000;
+const path = require('path')
 const cors = require(`cors`);
 require('dotenv').config();
-
-app.use(cors({
-  origin: 'http://localhost:3000',
-  methods: 'GET,POST',
-  allowedHeaders: 'Content-Type,Authorization',
-}));
-
+app.use(cors());
+app.use(bodyParser.json());
 // const bodyParser = require('body-parser')
 // app.use(bodyParser.urlencoded({ extended: true }))
 // app.use(bodyParser.json())
@@ -33,6 +30,8 @@ app.use('/admin', adminRoute);
 const authRoute = require('./routes/auth.routes')
 app.use('/api', authRoute);
 
+
+app.use('/api/transaksi_siswa/media', express.static(path.join(__dirname, 'foto')));
 
 app.listen(PORT, () => {
   console.log(`Server runs on port ${PORT}`);

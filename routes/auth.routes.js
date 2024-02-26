@@ -1,11 +1,13 @@
 const express = require('express');
+const router = express.Router();
 const authController = require('../controllers/auth_controller');
-const app = express();
-
-app.use(express.json())
+const jwt = require('jsonwebtoken');
 
 // endpoint
-app.post('/login', authController.login)
+router.post('/login', authController.login)
+router.get('/profile', authController.profile)
+router.put('/forgot-password', authController.forgotPassword)
+router.put('/reset-password', authController.resetPassword)
 
 
-module.exports = app;
+module.exports = router;
