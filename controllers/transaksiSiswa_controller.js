@@ -57,14 +57,21 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         const totalItems = transaksiSiswa.count;
 
-        if (totalItems === 0) {
-            return response.status(404).json({
-                success: false,
-                message: 'Data not found'
-            });
-        }
+        // if (totalItems === 0) {
+        //     return response.status(404).json({
+        //         success: false,
+        //         message: 'Data not found'
+        //     });
+        // }
 
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (transaksiSiswa.rows.length === 0) {
+            return response.status(404).json({
+                success: false,
+                message: "Data not found"
+            });
+        }
 
         return response.status(200).json({
             success: true,
