@@ -123,7 +123,7 @@ exports.addTransaksiSiswa = (request, response) => {
             id_siswa: request.body.id_siswa,
             janji: request.body.janji,
             jumlah_tamu: request.body.jumlah_tamu,
-            status: "Proses",
+            keterangan: request.body.keterangan,
             foto: request.file.filename
 
         };
