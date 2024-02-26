@@ -45,29 +45,74 @@ const getAdminById = async (id_admin) => {
     }
 };
 
-const profile = async (req, res) => {
-    const token = req.headers.authorization ? req.headers.authorization.split(' ')[1]: null;
-
-    if (token) {
-
-    } else {
-        return res.status(401).json({ error: 'Unauthorized' });
+const updateAdminProfile = async (req, res) => {
+    const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+  
+    if (!token) {
+      return res.status(401).json({ error: 'Tidak diizinkan' });
     }
-
+  
     try {
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+      const adminData = await getAdminById(decodedToken.id_admin);
+  
+      if (!adminData) {
+        return res.status(404).json({ message: 'Admin tidak ditemukan' });
+      }
+  
+      // Perbarui data admin berdasarkan body permintaan
+      adminData.nama_admin = req.body.nama_admin || adminData.nama_admin;
+      adminData.email = req.body.email || adminData.email;
+      adminData.role = req.body.role || adminData.role;
+      adminData.no_tlp = req.body.no_tlp || adminData.no_tlp;
+  
+      // Menggunakan multer, cek apakah ada file yang diunggah
+      if (req.file) {
+        // Simpan foto yang diunggah ke model admin
+        adminData.foto = req.file.filename; // Simpan file dalam bentuk buffer atau sesuai kebutuhan
+      }
+  
+      // Simpan data admin yang diperbarui
+      await adminData.save();
+  
+      // Kembalikan data admin yang diperbarui
+      return res.status(200).json(adminData);
+    } catch (error) {
+      console.error(error);
+      return res.status(401).json({ message: 'Token tidak valid' });
+    }
+  };
+  
+  
+  const profile = async (req, res) => {
+    if (req.method === 'GET') {
+      // Tangani permintaan GET untuk mengambil data profil
+      const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+  
+      if (!token) {
+        return res.status(401).json({ error: 'Tidak diizinkan' });
+      }
+  
+      try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
         const adminData = await getAdminById(decodedToken.id_admin);
-
+  
         if (!adminData) {
-            return res.status(404).json({ message: 'Admin not found' });
+          return res.status(404).json({ message: 'Admin tidak ditemukan' });
         }
-
+  
         return res.status(200).json(adminData);
-    } catch (error) {
+      } catch (error) {
         console.error(error);
-        return res.status(401).json({ message: 'Invalid token' });
+        return res.status(401).json({ message: 'Token tidak valid' });
+      }
+    } else if (req.method === 'PUT') {
+      // Tangani permintaan PUT untuk memperbarui data profil
+      await updateAdminProfile(req, res);
+    } else {
+      return res.status(405).json({ message: 'Metode Tidak Diizinkan' });
     }
-};
+  };
 
 const forgotPassword = async (request, response) => {
     try {
@@ -183,4 +228,4 @@ async function sendResetEmail(email, token) {
     });
 };
 
-module.exports = { login, profile, resetPassword, forgotPassword};
+module.exports = { login, profile, updateAdminProfile, resetPassword, forgotPassword};
