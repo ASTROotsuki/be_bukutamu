@@ -2,23 +2,40 @@ const transaksiSiswaModel = require('../models/index').transaksi_siswa;
 const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
-const uuid = require('uuid');
-const uuid4 = uuid.v4()
+const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
 
-const ITEMS_PER_PAGE = 5;
 
 exports.getAllTransaksiSiswa = async (request, response) => {
-    try{
+    try {
         const page = parseInt(request.query.page) || 1;
+        const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
-        let transaksiSiswa = await  transaksiSiswaModel.findAll({
+        const filterOptions = {};
+
+        // Tambahkan filter berdasarkan tanggal
+        if (request.query.startDate && request.query.endDate) {
+            filterOptions.createdAt = {
+                [Op.between]: [new Date(request.query.startDate), new Date(request.query.endDate)],
+            };
+        }
+
+        const searchQuery = request.query.search;
+        if (searchQuery) {
+            filterOptions[Op.or] = [
+                { '$siswa.nama_siswa$': { [Op.like]: `%${searchQuery}%` } },
+                { '$tamu.nama_tamu$': { [Op.like]: `%${searchQuery}%` } }
+            ];
+        }
+
+        let transaksiSiswa = await transaksiSiswaModel.findAndCountAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
+            where: filterOptions,
             include: [
                 {
                     model: siswaModel,
@@ -31,9 +48,9 @@ exports.getAllTransaksiSiswa = async (request, response) => {
             ],
         });
 
-        const totalItems = await transaksiSiswaModel.count();
+        const totalItems = transaksiSiswa.count;
 
-        if (transaksiSiswa.length === 0) {
+        if (totalItems === 0) {
             return response.status(404).json({
                 success: false,
                 message: 'Data not found'
@@ -44,7 +61,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         return response.status(200).json({
             success: true,
-            data: transaksiSiswa,
+            data: transaksiSiswa.rows,
             pagination: {
                 currentPage: page,
                 totalItems: totalItems,
@@ -93,39 +110,39 @@ exports.addTransaksiSiswa = (request, response) => {
         }
 
         let newTamu = {
-            id_tamu: uuid4,
+            id_tamu: uuidv4(),
             nama_tamu: request.body.nama_tamu,
             no_tlp: request.body.no_tlp,
 
         };
 
         let newTransaksiSiswa = {
-            id_transaksiSiswa: uuid4,
+            id_transaksiSiswa: uuidv4(),
             id_tamu: newTamu.id_tamu,
             id_siswa: request.body.id_siswa,
             janji: request.body.janji,
             jumlah_tamu: request.body.jumlah_tamu,
-            status: "Proses",
-            foto: request.file.filename
+            foto: request.file.filename,
+            keterangan: request.body.keterangan
 
         };
         try {
             await tamuModel.create(newTamu);
-            const createdTransaksiSiswa = await transaksiSiswaModel.create(newTransaksiSiswa);
-            const kodeUnik = createdTransaksiSiswa.id_transaksiSiswa.slice(-4);
+            await transaksiSiswaModel.create(newTransaksiSiswa);
 
 
             return response.json({
                 success: true,
-                message: `New form has been inserted`,
-                kode : kodeUnik
+                message: `New form has been inserted`
             });
         } catch (error) {
+            console.error('Error adding transaction:', error);
             return response.json({
                 success: false,
                 message: error.message
             });
         }
+
     });
 };
 
@@ -143,10 +160,10 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 id_siswa: request.body.id_siswa,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,
-                status: request.body.status,
+                keterangan: request.body.keterangan
             };
         } else {
-            const selectedTransaksiSiswa = await transaksiSiswaModel.findOne({
+            const selectedTransaksiSiswa = await transaksi_siswa.findOne({
                 where: { id_transaksiSiswa: id_transaksiSiswa },
             });
 
@@ -171,7 +188,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 foto: request.file.filename,
             };
         }
-        transaksiSiswaModel.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
+        transaksi_siswa.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
             .then((result) => {
                 return response.json({
                     success: true,
@@ -189,15 +206,15 @@ exports.updateTransaksiSiswa = async (request, response) => {
 
 exports.deleteTransaksiSiswa = async (request, response) => {
     const id_transaksiSiswa = request.params.id
-    const transaksiSiswa = await transaksiSiswaModel.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa }})
+    const transaksiSiswa = await transaksi_siswa.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa } })
     const oldFotoTransaksiSiswa = transaksiSiswa.foto
     const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa)
 
-    if(fs.existsSync(pathImage)){
+    if (fs.existsSync(pathImage)) {
         fs.unlink(pathImage, error => console.log(error))
     }
-    
-    transaksiSiswaModel.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
+
+    transaksi_siswa.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
         .then(result => {
             return response.json({
                 success: true,
