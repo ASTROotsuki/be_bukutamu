@@ -2,8 +2,7 @@ const { transaksi_siswa} = require('../models/index');
 const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
-const uuid = require('uuid');
-const uuid4 = uuid.v4()
+const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
@@ -111,14 +110,14 @@ exports.addTransaksiSiswa = (request, response) => {
         }
 
         let newTamu = {
-            id_tamu: uuid4,
+            id_tamu: uuidv4(),
             nama_tamu: request.body.nama_tamu,
             no_tlp: request.body.no_tlp,
 
         };
 
         let newTransaksiSiswa = {
-            id_transaksiSiswa: uuid4,
+            id_transaksiSiswa: uuidv4(),
             id_tamu: newTamu.id_tamu,
             id_siswa: request.body.id_siswa,
             janji: request.body.janji,
@@ -135,15 +134,16 @@ exports.addTransaksiSiswa = (request, response) => {
 
             return response.json({
                 success: true,
-                message: `New form has been inserted`,
-                kode : kodeUnik
+                message: `New form has been inserted`
             });
         } catch (error) {
+            console.error('Error adding transaction:', error);
             return response.json({
                 success: false,
                 message: error.message
             });
         }
+
     });
 };
 
@@ -161,7 +161,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 id_siswa: request.body.id_siswa,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,
-                status: request.body.status,
+                keterangan: request.body.keterangan
             };
         } else {
             const selectedTransaksiSiswa = await transaksi_siswa.findOne({
@@ -211,7 +211,7 @@ exports.deleteTransaksiSiswa = async (request, response) => {
     const oldFotoTransaksiSiswa = transaksiSiswa.foto
     const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa)
 
-    if(fs.existsSync(pathImage)){
+    if (fs.existsSync(pathImage)) {
         fs.unlink(pathImage, error => console.log(error))
     }
     

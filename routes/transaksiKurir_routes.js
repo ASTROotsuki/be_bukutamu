@@ -6,7 +6,7 @@ const transaksiKurirController = require('../controllers/transaksiKurir_controll
 //endpoint
 app.get("/get", transaksiKurirController.getAllTransaksiKurir)
 app.post("/add",transaksiKurirController.addTransaksiKurir)
-app.get("/find",transaksiKurirController.findTransaksiKurir)
+// app.post("/find",transaksiKurirController.findTransaksiKurir)
 // app.put("/update/:id", transaksiSiswaController.updateTransaksiSiswa)
 // app.delete("/delete/:id", transaksiSiswaController.deleteTransaksiSiswa)
 
