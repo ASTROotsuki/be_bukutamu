@@ -1,4 +1,4 @@
-const { transaksi_siswa} = require('../models/index');
+const transaksiSiswaModel = require('../models/index').transaksi_siswa;
 const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
@@ -32,7 +32,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
             ];
         }
 
-        let transaksiSiswa = await transaksi_siswa.findAndCountAll({
+        let transaksiSiswa = await transaksiSiswaModel.findAndCountAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
             where: filterOptions,
@@ -86,8 +86,7 @@ exports.findTransaksiSiswa = async (request, response) => {
                 { id_tamu__no_tlp: { [Op.substring]: keyword } },
                 { id_siswa__nama_siswa: { [Op.substring]: keyword } },
                 { janji: { [Op.substring]: keyword } },
-                { jumlah_tamu: { [Op.substring]: keyword } },
-                { status: { [Op.substring]: keyword } }
+                { jumlah_tamu: { [Op.substring]: keyword } }
             ]
         }
     })
@@ -122,14 +121,13 @@ exports.addTransaksiSiswa = (request, response) => {
             id_siswa: request.body.id_siswa,
             janji: request.body.janji,
             jumlah_tamu: request.body.jumlah_tamu,
-            keterangan: request.body.keterangan,
-            foto: request.file.filename
+            foto: request.file.filename,
+            keterangan: request.body.keterangan
 
         };
         try {
             await tamuModel.create(newTamu);
-            const createdTransaksiSiswa = await transaksi_siswa.create(newTransaksiSiswa);
-            const kodeUnik = createdTransaksiSiswa.id_transaksiSiswa.slice(-4);
+            await transaksiSiswaModel.create(newTransaksiSiswa);
 
 
             return response.json({
@@ -137,15 +135,14 @@ exports.addTransaksiSiswa = (request, response) => {
                 message: `New form has been inserted`
             });
         } catch (error) {
-            console.error('Error adding transaction:', error);
             return response.json({
                 success: false,
                 message: error.message
             });
         }
-
     });
 };
+
 
 exports.updateTransaksiSiswa = async (request, response) => {
     upload(request, response, async (err) => {
@@ -164,7 +161,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 keterangan: request.body.keterangan
             };
         } else {
-            const selectedTransaksiSiswa = await transaksi_siswa.findOne({
+            const selectedTransaksiSiswa = await transaksiSiswaModel.findOne({
                 where: { id_transaksiSiswa: id_transaksiSiswa },
             });
 
@@ -185,11 +182,11 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 id_siswa: request.body.id_siswa,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,
-                status: request.body.status,
                 foto: request.file.filename,
+                keterangan: request.body.keterangan
             };
         }
-        transaksi_siswa.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
+        transaksiSiswaModel.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
             .then((result) => {
                 return response.json({
                     success: true,
@@ -207,15 +204,15 @@ exports.updateTransaksiSiswa = async (request, response) => {
 
 exports.deleteTransaksiSiswa = async (request, response) => {
     const id_transaksiSiswa = request.params.id
-    const transaksiSiswa = await transaksi_siswa.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa }})
+    const transaksiSiswa = await transaksiSiswaModel.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa } })
     const oldFotoTransaksiSiswa = transaksiSiswa.foto
     const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa)
 
     if (fs.existsSync(pathImage)) {
         fs.unlink(pathImage, error => console.log(error))
     }
-    
-    transaksi_siswa.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
+
+    transaksiSiswaModel.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
         .then(result => {
             return response.json({
                 success: true,

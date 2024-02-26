@@ -1,7 +1,6 @@
 const siswaModel = require('../models/index').siswa
 const Op = require(`sequelize`).Op
-const uuid = require('uuid');
-const uuid4 = uuid.v4()
+const { v4: uuidv4 } = require('uuid');
 
 exports.getAllSiswa = async (request, response) => {
     let siswa = await siswaModel.findAll()
@@ -47,7 +46,7 @@ exports.findSiswa = async (request, response) => {
 
 exports.addSiswa = (request, response) => {
     let newSiswa = {
-        id_siswa: uuid4,
+        id_siswa: uuidv4(),
         nama_siswa: request.body.nama_siswa,
         email: request.body.email,
         no_tlp: request.body.no_tlp,
@@ -99,7 +98,7 @@ exports.updateSiswa = (request, response) => {
 exports.deleteSiswa = (request, response) => {
     let id_siswa = request.params.id
 
-    siswaModel.destroy({ where: { uuid: id_siswa } })
+    siswaModel.destroy({ where: { id_siswa: id_siswa } })
         .then(result => {
             return response.json({
                 success: true,
