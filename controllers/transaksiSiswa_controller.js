@@ -17,18 +17,25 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         const filterOptions = {};
 
-        // Tambahkan filter berdasarkan tanggal
-        if (request.query.startDate && request.query.endDate) {
+        // Tambahkan filter berdasarkan tanggal jika startDate diberikan
+        const startDate = request.query.startDate;
+        if (startDate) {
+            // Ubah startDate ke format yang hanya mencakup tanggal
+            const formattedStartDate = new Date(startDate).toLocaleDateString('en-CA');
+            
             filterOptions.createdAt = {
-                [Op.between]: [new Date(request.query.startDate), new Date(request.query.endDate)],
+                [Op.gte]: new Date(formattedStartDate),
             };
         }
 
         const searchQuery = request.query.search;
         if (searchQuery) {
+            // Ubah searchQuery menjadi huruf kecil
+            const lowercaseSearchQuery = searchQuery.toLowerCase();
+
             filterOptions[Op.or] = [
-                { '$siswa.nama_siswa$': { [Op.like]: `%${searchQuery}%` } },
-                { '$tamu.nama_tamu$': { [Op.like]: `%${searchQuery}%` } }
+                { '$siswa.nama_siswa$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }, // Menggunakan iLike untuk pencarian case-insensitive
+                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
             ];
         }
 
@@ -53,7 +60,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
         if (totalItems === 0) {
             return response.status(404).json({
                 success: false,
-                message: 'Data masih belum ada'
+                message: 'Data not found'
             });
         }
 
