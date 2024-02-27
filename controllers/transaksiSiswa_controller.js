@@ -19,12 +19,13 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         // Tambahkan filter berdasarkan tanggal jika startDate diberikan
         const startDate = request.query.startDate;
+
         if (startDate) {
-            // Ubah startDate ke format yang hanya mencakup tanggal
-            const formattedStartDate = new Date(startDate).toLocaleDateString('en-CA');
-            
+            const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
+
             filterOptions.createdAt = {
-                [Op.gte]: new Date(formattedStartDate),
+                [Op.between]: [startOfDay, endOfDay],
             };
         }
 
@@ -69,7 +70,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
         if (transaksiSiswa.rows.length === 0) {
             return response.status(404).json({
                 success: false,
-                message: "Data not found"
+                message: "Data not found based"
             });
         }
 
