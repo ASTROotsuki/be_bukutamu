@@ -116,7 +116,7 @@ const updateAdminProfile = async (req, res) => {
 
 const forgotPassword = async (request, response) => {
     try {
-        const { email } = req.body;
+        const { email } = request.body;
 
         if (!email) {
             return response.status(400).json({
