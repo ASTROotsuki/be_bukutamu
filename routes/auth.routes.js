@@ -7,7 +7,7 @@ const upload = require('../controllers/upload_foto');
 // endpoint
 router.post('/login', login)
 router.get('/profile', profile)
-router.put('/forgot-password', forgotPassword)
+router.post('/forgot-password', forgotPassword)
 router.put('/reset-password', resetPassword)
 router.put('/edit_profile', upload.single('foto'), updateAdminProfile)
 

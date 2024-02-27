@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const adminModel = require('../models/index').admin;
 const nodemailer = require('nodemailer');
+const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
 const resetPasswordToken = require('../models/index').reset_passwords;
 const bodyParser = require('body-parser');
