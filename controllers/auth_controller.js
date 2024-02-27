@@ -49,37 +49,45 @@ const updateAdminProfile = async (req, res) => {
     const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
   
     if (!token) {
-      return res.status(401).json({ error: 'Tidak diizinkan' });
+        return res.status(401).json({ error: 'Tidak diizinkan' });
     }
   
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-      const adminData = await getAdminById(decodedToken.id_admin);
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+        const adminData = await getAdminById(decodedToken.id_admin);
+        
+        if (!adminData) {
+            return res.status(404).json({ message: 'Admin tidak ditemukan' });
+        }
   
-      if (!adminData) {
-        return res.status(404).json({ message: 'Admin tidak ditemukan' });
-      }
+        // Perbarui data admin berdasarkan body permintaan
+        adminData.nama_admin = req.body.nama_admin || adminData.nama_admin;
+        adminData.email = req.body.email || adminData.email;
+        adminData.role = req.body.role || adminData.role;
+        adminData.no_tlp = req.body.no_tlp || adminData.no_tlp;
   
-      // Perbarui data admin berdasarkan body permintaan
-      adminData.nama_admin = req.body.nama_admin || adminData.nama_admin;
-      adminData.email = req.body.email || adminData.email;
-      adminData.role = req.body.role || adminData.role;
-      adminData.no_tlp = req.body.no_tlp || adminData.no_tlp;
+        // Cek apakah password disediakan dalam permintaan
+        if (req.body.password) {
+            const saltRounds = 10;
+            const salt = await bcrypt.genSalt(saltRounds);
+            const hashedPassword = await bcrypt.hash(req.body.password, salt);
+            adminData.password = hashedPassword;
+        }
   
-      // Menggunakan multer, cek apakah ada file yang diunggah
-      if (req.file) {
-        // Simpan foto yang diunggah ke model admin
-        adminData.foto = req.file.filename; // Simpan file dalam bentuk buffer atau sesuai kebutuhan
-      }
+        // Menggunakan multer, cek apakah ada file yang diunggah
+        if (req.file) {
+            // Simpan foto yang diunggah ke model admin
+            adminData.foto = req.file.filename; // Simpan file dalam bentuk buffer atau sesuai kebutuhan
+        }
   
-      // Simpan data admin yang diperbarui
-      await adminData.save();
+        // Simpan data admin yang diperbarui
+        await adminData.save();
   
-      // Kembalikan data admin yang diperbarui
-      return res.status(200).json(adminData);
+        // Kembalikan data admin yang diperbarui
+        return res.status(200).json(adminData);
     } catch (error) {
-      console.error(error);
-      return res.status(401).json({ message: 'Token tidak valid' });
+        console.error(error);
+        return res.status(401).json({ message: 'Token tidak valid' });
     }
   };
   
