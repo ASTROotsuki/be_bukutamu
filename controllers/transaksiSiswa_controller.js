@@ -2,11 +2,37 @@ const transaksiSiswaModel = require('../models/index').transaksi_siswa;
 const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
+const moment = require('moment');
+const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+
+
+const deleteOldData = async () => {
+    try {
+        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+
+        await transaksi_siswa.destroy({
+            where: {
+                createAt: {
+                    [Op.lt]: oneMonthAgo,
+                },
+            },
+        });
+
+        console.log('Data lama berhasil dihapus');
+    } catch (error) {
+        console.error('Error saat menghapus data lama:', error);
+    }
+};
+
+cron.schedule('0 0 1 * *', async () => {
+    await deleteOldData();
+    console.log('Penghapusan otomatis selesai');
+});
 
 
 exports.getAllTransaksiSiswa = async (request, response) => {
@@ -17,18 +43,26 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         const filterOptions = {};
 
-        // Tambahkan filter berdasarkan tanggal
-        if (request.query.startDate && request.query.endDate) {
+        // Tambahkan filter berdasarkan tanggal jika startDate diberikan
+        const startDate = request.query.startDate;
+
+        if (startDate) {
+            const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
+
             filterOptions.createdAt = {
-                [Op.between]: [new Date(request.query.startDate), new Date(request.query.endDate)],
+                [Op.between]: [startOfDay, endOfDay],
             };
         }
 
         const searchQuery = request.query.search;
         if (searchQuery) {
+            // Ubah searchQuery menjadi huruf kecil
+            const lowercaseSearchQuery = searchQuery.toLowerCase();
+
             filterOptions[Op.or] = [
-                { '$siswa.nama_siswa$': { [Op.like]: `%${searchQuery}%` } },
-                { '$tamu.nama_tamu$': { [Op.like]: `%${searchQuery}%` } }
+                { '$siswa.nama_siswa$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }, // Menggunakan iLike untuk pencarian case-insensitive
+                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
             ];
         }
 
@@ -50,14 +84,21 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         const totalItems = transaksiSiswa.count;
 
-        if (totalItems === 0) {
-            return response.status(404).json({
-                success: false,
-                message: 'Data masih belum ada'
-            });
-        }
+        // if (totalItems === 0) {
+        //     return response.status(404).json({
+        //         success: false,
+        //         message: 'Data not found'
+        //     });
+        // }
 
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (transaksiSiswa.rows.length === 0) {
+            return response.status(404).json({
+                success: false,
+                message: "Data tidak ada"
+            });
+        }
 
         return response.status(200).json({
             success: true,

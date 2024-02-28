@@ -1,4 +1,5 @@
 const express = require(`express`);
+const cron = require('node-cron');
 const bodyParser = require('body-parser');
 const app = express();
 const PORT = 8000;
@@ -34,6 +35,7 @@ const transaksiGuruRoute = require('./routes/transaksiGuru_routes')
 app.use('/transaksi_guru', transaksiGuruRoute);
 
 app.use('/api/transaksi_siswa/media', express.static(path.join(__dirname, 'foto')));
+app.use('/api/profile/media', express.static(path.join(__dirname, 'foto')));
 
 app.listen(PORT, () => {
   console.log(`Server runs on port ${PORT}`);
