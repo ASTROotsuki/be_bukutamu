@@ -11,6 +11,13 @@ exports.getAllSiswa = async (request, response) => {
                 message: 'Data not found'
             });
         }
+        const searchQuery = request.query.search;
+        if (searchQuery) {
+            filterOptions[Op.or] = [
+                { '$nama_siswa$': { [Op.like]: `%${searchQuery}%` } },
+                { '$email $': { [Op.like]: `%${searchQuery}%` } }
+            ];
+        }
         return response.json({
             success: true,
             data: siswa,
