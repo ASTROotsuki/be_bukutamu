@@ -2,7 +2,7 @@ const express = require(`express`);
 const cron = require('node-cron');
 const bodyParser = require('body-parser');
 const app = express();
-const PORT = 8000;
+const PORT = 2000;
 const path = require('path')
 const cors = require(`cors`);
 require('dotenv').config();
