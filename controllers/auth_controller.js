@@ -4,6 +4,7 @@ const adminModel = require('../models/index').admin;
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const resetPasswordToken = require('../models/index').reset_passwords;
+const upload = require('./upload_foto').single(`foto`);
 const bodyParser = require('body-parser');
 const db = require('../models');
 require('dotenv').config();
