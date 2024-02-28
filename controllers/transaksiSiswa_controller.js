@@ -3,11 +3,36 @@ const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const Op = require(`sequelize`).Op
 const moment = require('moment');
+const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+
+
+const deleteOldData = async () => {
+    try {
+        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+
+        await transaksi_siswa.destroy({
+            where: {
+                createAt: {
+                    [Op.lt]: oneMonthAgo,
+                },
+            },
+        });
+
+        console.log('Data lama berhasil dihapus');
+    } catch (error) {
+        console.error('Error saat menghapus data lama:', error);
+    }
+};
+
+cron.schedule('0 0 1 * *', async () => {
+    await deleteOldData();
+    console.log('Penghapusan otomatis selesai');
+});
 
 
 exports.getAllTransaksiSiswa = async (request, response) => {
