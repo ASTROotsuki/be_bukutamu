@@ -18,6 +18,7 @@ const authToken = process.env.TWILIO_ACCOUNT_TOKEN;
 const fromNumber = 'whatsapp:+17815377402'
 
 const twilio = require('twilio');
+const { request } = require('http')
 const client = twilio(accountSid, authToken);
 async function sendWhatsAppNotification(phoneNumber, message) {
     try {
@@ -35,6 +36,24 @@ async function sendWhatsAppNotification(phoneNumber, message) {
     }
 }
 
+exports.getAllMoklet = async (request, response) =>{
+    try {
+        const allSiswa = await siswaModel.findAll();
+        const allGuru = await guruModel.findAll();
+
+        return response.json({
+            success: true,
+            data: {
+                siswa: allSiswa,
+                guru: allGuru,
+            },
+            message: 'All students and teachers data loaded successfully',
+        });
+    } catch (error) {
+        console.error(error);
+        return response.status(500).json({ message: error.message });
+    }
+}
 exports.getAllTransaksiKurir = async (request, response) => {
     let transaksiKurir = await transaksiKurirModel.findAll()
     try {
