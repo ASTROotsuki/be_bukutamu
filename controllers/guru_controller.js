@@ -1,7 +1,6 @@
 const guruModel = require('../models/index').guru;
 const Op = require(`sequelize`).Op;
-const uuid = require('uuid');
-const uuid4 = uuid.v4()
+const { v4: uuidv4 } = require('uuid');
 
 exports.getAllGuru = async (request, response) => {
     let guru = await guruModel.findAll()
@@ -46,7 +45,7 @@ exports.findGuru = async (request, response) => {
 
 exports.addGuru = (request, response) => {
     let newGuru = {
-        id_guru: uuid4,
+        id_guru: uuidv4(),
         nama_guru: request.body.nama_guru,
         email: request.body.email,
         no_tlp: request.body.no_tlp

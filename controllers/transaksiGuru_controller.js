@@ -1,9 +1,7 @@
-const transaksiSiswaModel = require('../models/index').transaksi_siswa;
+const transaksiGuruModel = require('../models/index').transaksi_guru;
 const tamuModel = require('../models/index').tamu;
-const siswaModel = require('../models/index').siswa;
+const guruModel = require('../models/index').guru;
 const Op = require(`sequelize`).Op
-const moment = require('moment');
-const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
@@ -11,31 +9,7 @@ const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
 
 
-const deleteOldData = async () => {
-    try {
-        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
-
-        await transaksi_siswa.destroy({
-            where: {
-                createAt: {
-                    [Op.lt]: oneMonthAgo,
-                },
-            },
-        });
-
-        console.log('Data lama berhasil dihapus');
-    } catch (error) {
-        console.error('Error saat menghapus data lama:', error);
-    }
-};
-
-cron.schedule('0 0 1 * *', async () => {
-    await deleteOldData();
-    console.log('Penghapusan otomatis selesai');
-});
-
-
-exports.getAllTransaksiSiswa = async (request, response) => {
+exports.getAllTransaksiGuru = async (request, response) => {
     try {
         const page = parseInt(request.query.page) || 1;
         const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
@@ -43,36 +17,28 @@ exports.getAllTransaksiSiswa = async (request, response) => {
 
         const filterOptions = {};
 
-        // Tambahkan filter berdasarkan tanggal jika startDate diberikan
-        const startDate = request.query.startDate;
-
-        if (startDate) {
-            const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
+        // Tambahkan filter berdasarkan tanggal
+        if (request.query.startDate && request.query.endDate) {
             filterOptions.createdAt = {
-                [Op.between]: [startOfDay, endOfDay],
+                [Op.between]: [new Date(request.query.startDate), new Date(request.query.endDate)],
             };
         }
 
         const searchQuery = request.query.search;
         if (searchQuery) {
-            // Ubah searchQuery menjadi huruf kecil
-            const lowercaseSearchQuery = searchQuery.toLowerCase();
-
             filterOptions[Op.or] = [
-                { '$siswa.nama_siswa$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }, // Menggunakan iLike untuk pencarian case-insensitive
-                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
+                { '$guru.nama_guru$': { [Op.like]: `%${searchQuery}%` } },
+                { '$tamu.nama_tamu$': { [Op.like]: `%${searchQuery}%` } }
             ];
         }
 
-        let transaksiSiswa = await transaksiSiswaModel.findAndCountAll({
+        let transaksiGuru = await transaksiGuruModel.findAndCountAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
             where: filterOptions,
             include: [
                 {
-                    model: siswaModel,
+                    model: guruModel,
                     require: true
                 },
                 {
@@ -82,27 +48,20 @@ exports.getAllTransaksiSiswa = async (request, response) => {
             ],
         });
 
-        const totalItems = transaksiSiswa.count;
+        const totalItems = transaksiGuru.count;
 
-        // if (totalItems === 0) {
-        //     return response.status(404).json({
-        //         success: false,
-        //         message: 'Data not found'
-        //     });
-        // }
-
-        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-
-        if (transaksiSiswa.rows.length === 0) {
+        if (totalItems === 0) {
             return response.status(404).json({
                 success: false,
-                message: "Data masih belum ada"
+                message: 'Data masih belum ada'
             });
         }
 
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
         return response.status(200).json({
             success: true,
-            data: transaksiSiswa.rows,
+            data: transaksiGuru.rows,
             pagination: {
                 currentPage: page,
                 totalItems: totalItems,
@@ -116,16 +75,16 @@ exports.getAllTransaksiSiswa = async (request, response) => {
     }
 };
 
-exports.findTransaksiSiswa = async (request, response) => {
+exports.findTransaksiGuru= async (request, response) => {
 
     let keyword = request.body.keyword
 
-    let transaksiSiswa = await transaksiSiswaModel.findAll({
+    let transaksiGuru = await transaksiGuruModel.findAll({
         where: {
             [Op.or]: [
                 { id_tamu__nama_tamu: { [Op.substring]: keyword } },
                 { id_tamu__no_tlp: { [Op.substring]: keyword } },
-                { id_siswa__nama_siswa: { [Op.substring]: keyword } },
+                { id_guru__nama_guru: { [Op.substring]: keyword } },
                 { janji: { [Op.substring]: keyword } },
                 { jumlah_tamu: { [Op.substring]: keyword } }
             ]
@@ -134,12 +93,12 @@ exports.findTransaksiSiswa = async (request, response) => {
 
     return response.json({
         success: true,
-        data: transaksiSiswa,
+        data: transaksiGuru,
         message: `All transaksi have beed loaded`
     })
 };
 
-exports.addTransaksiSiswa = (request, response) => {
+exports.addTransaksiGuru = (request, response) => {
     upload(request, response, async (error) => {
         if (error) {
             return response.json({ message: error });
@@ -156,11 +115,12 @@ exports.addTransaksiSiswa = (request, response) => {
 
         };
 
-        let newTransaksiSiswa = {
-            id_transaksiSiswa: uuidv4(),
+        let newTransaksiGuru= {
+            id_transaksiGuru: uuidv4(),
             id_tamu: newTamu.id_tamu,
-            id_siswa: request.body.id_siswa,
+            id_guru: request.body.id_guru,
             janji: request.body.janji,
+            asal_instansi: request.body.asal_instansi,
             jumlah_tamu: request.body.jumlah_tamu,
             foto: request.file.filename,
             keterangan: request.body.keterangan
@@ -168,7 +128,7 @@ exports.addTransaksiSiswa = (request, response) => {
         };
         try {
             await tamuModel.create(newTamu);
-            await transaksiSiswaModel.create(newTransaksiSiswa);
+            await transaksiGuruModel.create(newTransaksiGuru);
 
 
             return response.json({
@@ -185,49 +145,50 @@ exports.addTransaksiSiswa = (request, response) => {
 };
 
 
-exports.updateTransaksiSiswa = async (request, response) => {
+exports.updateTransaksiGuru = async (request, response) => {
     upload(request, response, async (err) => {
         if (err) {
             return response.json({ message: err });
         }
 
-        let id_transaksiSiswa = request.params.id;
-        let dataTransaksiSiswa = {};
+        let id_transaksiGuru = request.params.id;
+        let dataTransaksiGuru = {};
 
         if (!request.file) {
-            dataTransaksiSiswa = {
-                id_siswa: request.body.id_siswa,
+            dataTransaksiGuru= {
+                id_guru: request.body.id_guru,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,
                 keterangan: request.body.keterangan
             };
         } else {
-            const selectedTransaksiSiswa = await transaksiSiswaModel.findOne({
-                where: { id_transaksiSiswa: id_transaksiSiswa },
+            const selectedTransaksiGuru = await transaksiGuruModel.findOne({
+                where: { id_transaksiGuru: id_transaksiGuru },
             });
 
-            if (!selectedTransaksiSiswa) {
+            if (!selectedTransaksiGuru) {
                 return response.json({
                     success: false,
-                    message: 'Transaksi Siswa not found',
+                    message: 'Transaksi Guru not found',
                 });
             }
 
-            const oldFotoTransaksiSiswa = selectedTransaksiSiswa.foto;
-            const pathImage = path.join(__dirname, `../foto`, oldFotoTransaksiSiswa);
+            const oldFotoTransaksiGuru = selectedTransaksiGuru.foto;
+            const pathImage = path.join(__dirname, `../foto`, oldFotoTransaksiGuru);
 
             if (fs.existsSync(pathImage)) {
                 fs.unlink(pathImage, (error) => console.log(error));
             }
-            dataTransaksiSiswa = {
-                id_siswa: request.body.id_siswa,
+            dataTransaksiGuru = {
+                id_guru: request.body.id_guru,
                 janji: request.body.janji,
+                asal_instansi: request.body.asal_instansi,
                 jumlah_tamu: request.body.jumlah_tamu,
                 foto: request.file.filename,
                 keterangan: request.body.keterangan
             };
         }
-        transaksiSiswaModel.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
+        transaksiGuruModel.update(dataTransaksiGuru, { where: { id_transaksiGuru: id_transaksiGuru } })
             .then((result) => {
                 return response.json({
                     success: true,
@@ -243,21 +204,21 @@ exports.updateTransaksiSiswa = async (request, response) => {
     });
 };
 
-exports.deleteTransaksiSiswa = async (request, response) => {
-    const id_transaksiSiswa = request.params.id
-    const transaksiSiswa = await transaksiSiswaModel.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa } })
-    const oldFotoTransaksiSiswa = transaksiSiswa.foto
-    const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa)
+exports.deleteTransaksiGuru = async (request, response) => {
+    const id_transaksiGuru = request.params.id
+    const transaksiGuru = await transaksiGuruModel.findOne({ where: { id_transaksiGuru: id_transaksiGuru } })
+    const oldFotoTransaksiGuru = transaksiGuru.foto
+    const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiGuru)
 
     if (fs.existsSync(pathImage)) {
         fs.unlink(pathImage, error => console.log(error))
     }
 
-    transaksiSiswaModel.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
+    transaksiGuruModel.destroy({ where: { id_transaksiGuru: id_transaksiGuru } })
         .then(result => {
             return response.json({
                 success: true,
-                message: "Data siswa has been deleted"
+                message: "Data guru has been deleted"
             })
         })
 };
