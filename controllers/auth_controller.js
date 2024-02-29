@@ -20,7 +20,7 @@ const login = async (req, res) => {
         const adminData = await adminModel.findOne({ where: { email } });
 
         if (!adminData) {
-            return res.status(404).json({ message: 'Admin not found' });
+            return res.status(404).json({ message: 'Email atau Password salah' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, adminData.password);
