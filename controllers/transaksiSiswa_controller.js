@@ -1,10 +1,12 @@
-const transaksiSiswaModel = require('../models/index').transaksi_siswa;
+const { transaksi_siswa } = require('../models/index');
 const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
-const Op = require(`sequelize`).Op
+const { Op } = require(`sequelize`);
 const moment = require('moment');
 const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
+const uuid = require('uuid');
+const uuid4 = uuid.v4();
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
@@ -66,7 +68,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
             ];
         }
 
-        let transaksiSiswa = await transaksiSiswaModel.findAndCountAll({
+        let transaksiSiswa = await transaksi_siswa.findAndCountAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
             where: filterOptions,
@@ -120,7 +122,7 @@ exports.findTransaksiSiswa = async (request, response) => {
 
     let keyword = request.body.keyword
 
-    let transaksiSiswa = await transaksiSiswaModel.findAll({
+    let transaksiSiswa = await transaksi_siswa.findAll({
         where: {
             [Op.or]: [
                 { id_tamu__nama_tamu: { [Op.substring]: keyword } },
@@ -168,7 +170,7 @@ exports.addTransaksiSiswa = (request, response) => {
         };
         try {
             await tamuModel.create(newTamu);
-            await transaksiSiswaModel.create(newTransaksiSiswa);
+            await transaksi_siswa.create(newTransaksiSiswa);
 
 
             return response.json({
@@ -202,7 +204,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 keterangan: request.body.keterangan
             };
         } else {
-            const selectedTransaksiSiswa = await transaksiSiswaModel.findOne({
+            const selectedTransaksiSiswa = await transaksi_siswa.findOne({
                 where: { id_transaksiSiswa: id_transaksiSiswa },
             });
 
@@ -227,7 +229,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
                 keterangan: request.body.keterangan
             };
         }
-        transaksiSiswaModel.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
+        transaksi_siswa.update(dataTransaksiSiswa, { where: { id_transaksiSiswa: id_transaksiSiswa } })
             .then((result) => {
                 return response.json({
                     success: true,
@@ -245,7 +247,7 @@ exports.updateTransaksiSiswa = async (request, response) => {
 
 exports.deleteTransaksiSiswa = async (request, response) => {
     const id_transaksiSiswa = request.params.id
-    const transaksiSiswa = await transaksiSiswaModel.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa } })
+    const transaksiSiswa = await transaksi_siswa.findOne({ where: { id_transaksiSiswa: id_transaksiSiswa } })
     const oldFotoTransaksiSiswa = transaksiSiswa.foto
     const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa)
 
@@ -253,7 +255,7 @@ exports.deleteTransaksiSiswa = async (request, response) => {
         fs.unlink(pathImage, error => console.log(error))
     }
 
-    transaksiSiswaModel.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
+    transaksi_siswa.destroy({ where: { id_transaksiSiswa: id_transaksiSiswa } })
         .then(result => {
             return response.json({
                 success: true,
