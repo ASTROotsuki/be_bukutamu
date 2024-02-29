@@ -3,6 +3,7 @@ const tamuModel = require('../models/index').tamu;
 const siswaModel = require('../models/index').siswa;
 const { Op } = require(`sequelize`);
 const moment = require('moment');
+const multer = require('multer');
 const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
 const uuid = require('uuid');
