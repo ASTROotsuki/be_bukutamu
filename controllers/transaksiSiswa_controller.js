@@ -96,7 +96,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
         if (transaksiSiswa.rows.length === 0) {
             return response.status(404).json({
                 success: false,
-                message: "Data tidak ada"
+                message: "Data masih belum ada"
             });
         }
 
