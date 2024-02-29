@@ -19,6 +19,7 @@ module.exports = (sequelize, DataTypes) => {
     id_transaksiGuru: {
       type: DataTypes.UUID,
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
     },
     id_tamu: DataTypes.UUID,
     id_guru: DataTypes.UUID,

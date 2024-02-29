@@ -1,12 +1,38 @@
-const transaksiGuruModel = require('../models/index').transaksi_guru;
+const { transaksi_guru } = require('../models/index');
 const tamuModel = require('../models/index').tamu;
 const guruModel = require('../models/index').guru;
-const Op = require(`sequelize`).Op
+const { Op } = require(`sequelize`);
+const cron = require('node-cron');
+const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+
+
+const deleteOldData = async () => {
+    try {
+        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+
+        await transaksi_guru.destroy({
+            where: {
+                createAt: {
+                    [Op.lt]: oneMonthAgo,
+                },
+            },
+        });
+
+        console.log('Data lama berhasil dihapus');
+    } catch (error) {
+        console.error('Error saat menghapus data lama:', error);
+    }
+};
+
+cron.schedule('0 0 1 * *', async () => {
+    await deleteOldData();
+    console.log('Penghapusan otomatis selesai');
+});
 
 
 exports.getAllTransaksiGuru = async (request, response) => {
@@ -18,21 +44,29 @@ exports.getAllTransaksiGuru = async (request, response) => {
         const filterOptions = {};
 
         // Tambahkan filter berdasarkan tanggal
-        if (request.query.startDate && request.query.endDate) {
-            filterOptions.createdAt = {
-                [Op.between]: [new Date(request.query.startDate), new Date(request.query.endDate)],
+        const startDate = request.query.startDate;
+
+        if (startDate) {
+            const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss'); 
+
+            filterOptions.createAt = {
+                [Op.between]: [startOfDay, endOfDay],
             };
         }
 
         const searchQuery = request.query.search;
         if (searchQuery) {
+            
+            const lowercaseSearchQuery = searchQuery.toLowerCase();
+
             filterOptions[Op.or] = [
-                { '$guru.nama_guru$': { [Op.like]: `%${searchQuery}%` } },
-                { '$tamu.nama_tamu$': { [Op.like]: `%${searchQuery}%` } }
+                { '$guru.nama_guru$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
+                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
             ];
         }
 
-        let transaksiGuru = await transaksiGuruModel.findAndCountAll({
+        let transaksiGuru = await transaksi_guru.findAndCountAll({
             offset: offset,
             limit: ITEMS_PER_PAGE,
             where: filterOptions,
@@ -50,14 +84,21 @@ exports.getAllTransaksiGuru = async (request, response) => {
 
         const totalItems = transaksiGuru.count;
 
-        if (totalItems === 0) {
-            return response.status(404).json({
-                success: false,
-                message: 'Data masih belum ada'
-            });
-        }
+        // if (totalItems === 0) {
+        //     return response.status(404).json({
+        //         success: false,
+        //         message: 'Data masih belum ada'
+        //     });
+        // }
 
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (transaksiGuru.rows.length === 0) {
+            return response.status(404).json({
+                success: false,
+                message: "Data masih belum ada"
+            });
+        }
 
         return response.status(200).json({
             success: true,
@@ -79,7 +120,7 @@ exports.findTransaksiGuru= async (request, response) => {
 
     let keyword = request.body.keyword
 
-    let transaksiGuru = await transaksiGuruModel.findAll({
+    let transaksiGuru = await transaksi_guru.findAll({
         where: {
             [Op.or]: [
                 { id_tamu__nama_tamu: { [Op.substring]: keyword } },
@@ -128,7 +169,7 @@ exports.addTransaksiGuru = (request, response) => {
         };
         try {
             await tamuModel.create(newTamu);
-            await transaksiGuruModel.create(newTransaksiGuru);
+            await transaksi_guru.create(newTransaksiGuru);
 
 
             return response.json({
@@ -162,7 +203,7 @@ exports.updateTransaksiGuru = async (request, response) => {
                 keterangan: request.body.keterangan
             };
         } else {
-            const selectedTransaksiGuru = await transaksiGuruModel.findOne({
+            const selectedTransaksiGuru = await transaksi_guru.findOne({
                 where: { id_transaksiGuru: id_transaksiGuru },
             });
 
@@ -188,7 +229,7 @@ exports.updateTransaksiGuru = async (request, response) => {
                 keterangan: request.body.keterangan
             };
         }
-        transaksiGuruModel.update(dataTransaksiGuru, { where: { id_transaksiGuru: id_transaksiGuru } })
+        transaksi_guru.update(dataTransaksiGuru, { where: { id_transaksiGuru: id_transaksiGuru } })
             .then((result) => {
                 return response.json({
                     success: true,
@@ -206,7 +247,7 @@ exports.updateTransaksiGuru = async (request, response) => {
 
 exports.deleteTransaksiGuru = async (request, response) => {
     const id_transaksiGuru = request.params.id
-    const transaksiGuru = await transaksiGuruModel.findOne({ where: { id_transaksiGuru: id_transaksiGuru } })
+    const transaksiGuru = await transaksi_guru.findOne({ where: { id_transaksiGuru: id_transaksiGuru } })
     const oldFotoTransaksiGuru = transaksiGuru.foto
     const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiGuru)
 
@@ -214,7 +255,7 @@ exports.deleteTransaksiGuru = async (request, response) => {
         fs.unlink(pathImage, error => console.log(error))
     }
 
-    transaksiGuruModel.destroy({ where: { id_transaksiGuru: id_transaksiGuru } })
+    transaksi_guru.destroy({ where: { id_transaksiGuru: id_transaksiGuru } })
         .then(result => {
             return response.json({
                 success: true,
