@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
     asal_instansi: DataTypes.STRING,
     tanggal_dititipkan: DataTypes.DATE,
     tanggal_diterima: DataTypes.STRING,
+    status: DataTypes.ENUM("Proses", "Gagal", "Selesai"),
     foto: DataTypes.STRING
   }, {
     sequelize,
