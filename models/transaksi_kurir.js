@@ -12,8 +12,8 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       transaksi_kurir.belongsTo(models.tamu, { foreignKey: 'id_tamu' });
-      transaksi_kurir.belongsTo(models.kurirSiswa, { foreignKey: 'id_kurirSiswa' });
-      transaksi_kurir.belongsTo(models.kurirGuru, { foreignKey: 'id_kurirGuru' });
+      transaksi_kurir.belongsTo(models.transaksi_kurirSiswa, { foreignKey: 'id_kurirSiswa' });
+      transaksi_kurir.belongsTo(models.transaksi_kurirGuru, { foreignKey: 'id_kurirGuru' });
     }
   }
   transaksi_kurir.init({
