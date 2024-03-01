@@ -37,6 +37,7 @@ app.use('/transaksi_guru', transaksiGuruRoute);
 app.use('/api/transaksi_siswa/media', express.static(path.join(__dirname, 'foto')));
 app.use('/api/profile/media', express.static(path.join(__dirname, 'foto')));
 app.use('/api/transaksi_guru/media', express.static(path.join(__dirname, 'foto')));
+app.use('/api/transaksi_kurir/media', express.static(path.join(__dirname, 'foto')));
 
 app.listen(PORT, () => {
   console.log(`Server runs on port ${PORT}`);

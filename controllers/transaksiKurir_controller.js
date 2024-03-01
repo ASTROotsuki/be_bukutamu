@@ -1,10 +1,11 @@
-const transaksiKurirModel = require('../models/index').transaksi_kurir
+const { transaksi_kurir } = require('../models/index')
 const tamuModel = require('../models/index').tamu
 const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa
 const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru
 const siswaModel = require('../models/index').siswa
 const guruModel = require('../models/index').guru
-const Op = require(`sequelize`).Op
+const { Op } = require(`sequelize`)
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
@@ -54,24 +55,80 @@ exports.getAllMoklet = async (request, response) =>{
         return response.status(500).json({ message: error.message });
     }
 }
+
 exports.getAllTransaksiKurir = async (request, response) => {
-    let transaksiKurir = await transaksiKurirModel.findAll()
     try {
-        if (transaksiKurir.length === 0) {
+        const page = parseInt(request.query.page) || 1;
+        const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
+        const offset = (page - 1) * ITEMS_PER_PAGE;
+
+        const filterOptions = {};
+
+        // Tambahkan filter berdasarkan tanggal jika startDate diberikan
+        const startDate = request.query.startDate;
+
+        if (startDate) {
+            const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
+
+            filterOptions.tanggal_dititipkan = {
+                [Op.between]: [startOfDay, endOfDay],
+            };
+        }
+
+        const searchQuery = request.query.search;
+        if (searchQuery) {
+            // Ubah searchQuery menjadi huruf kecil
+            const lowercaseSearchQuery = searchQuery.toLowerCase();
+
+            filterOptions[Op.or] = [
+                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
+            ];
+        }
+
+        let transaksiKurir = await transaksi_kurir.findAndCountAll({
+            offset: offset,
+            limit: ITEMS_PER_PAGE,
+            where: filterOptions,
+            include: [
+                {
+                    model: tamuModel,
+                    require: true
+                },
+            ],
+        });
+
+        const totalItems = transaksiKurir.count;
+
+        // if (totalItems === 0) {
+        //     return response.status(404).json({
+        //         success: false,
+        //         message: 'Data not found'
+        //     });
+        // }
+
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (transaksiKurir.rows.length === 0) {
             return response.status(404).json({
                 success: false,
-                message: 'Data not found'
+                message: "Data masih belum ada"
             });
         }
-        return response.json({
+
+        return response.status(200).json({
             success: true,
-            data: transaksiKurir,
-            message: 'All Form have been loaded'
-        })
+            data: transaksiKurir.rows,
+            pagination: {
+                currentPage: page,
+                totalItems: totalItems,
+                totalPages: totalPages,
+            },
+            message: 'All transaction data siswa have been loaded'
+        });
     } catch (error) {
         console.error(error);
-        console.log(transaksiKurirModel);
-        return response.status(500).json({ message: error });
+        return response.status(500).json({ message: error.message });
     }
 };
 
@@ -79,7 +136,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
 
 //     let keyword = request.body.keyword
 
-//     let transaksiKurir = await transaksiKurirModel.findAll({
+//     let transaksiKurir = await transaksi_kurir.findAll({
 //         where: {
 //             [Op.or]: [
 //                 { id_tamu__nama_tamu: { [Op.substring]: keyword } },
@@ -138,7 +195,7 @@ exports.addTransaksiKurir = (request, response) => {
         };
         try {
             await tamuModel.create(newTamu);
-            await transaksiKurirModel.create(newTransaksiKurir);
+            await transaksi_kurir.create(newTransaksiKurir);
 
             if (request.body.id_guru) {
                 const guru = await guruModel.findOne({
