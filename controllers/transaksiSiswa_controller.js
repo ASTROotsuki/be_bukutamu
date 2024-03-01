@@ -147,6 +147,7 @@ exports.addTransaksiSiswa = (request, response) => {
         if (error) {
             return response.json({ message: error });
         }
+        console.log("ini jalan")
 
         if (!request.file) {
             return response.json({ message: `Nothing to Upload` });
