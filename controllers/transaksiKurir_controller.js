@@ -82,7 +82,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
             const lowercaseSearchQuery = searchQuery.toLowerCase();
 
             filterOptions[Op.or] = [
-                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
+                { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
             ];
         }
 
@@ -95,6 +95,14 @@ exports.getAllTransaksiKurir = async (request, response) => {
                     model: tamuModel,
                     require: true
                 },
+                {
+                    model: transaksiKurirGuruModel,
+                    require: true
+                },
+                {
+                    model: transaksiKurirSiswaModel,
+                    require: true
+                }
             ],
         });
 
