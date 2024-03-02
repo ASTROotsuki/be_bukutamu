@@ -23,6 +23,8 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4
     },
     id_tamu: DataTypes.UUID,
+    id_kurirSiswa: DataTypes.UUID,
+    id_kurirGuru: DataTypes.UUID,
     asal_instansi: DataTypes.STRING,
     tanggal_dititipkan: DataTypes.DATE,
     tanggal_diterima: DataTypes.STRING,
