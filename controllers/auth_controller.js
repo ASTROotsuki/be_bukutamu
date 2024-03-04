@@ -164,37 +164,38 @@ const forgotPassword = async (request, response) => {
     }
 };
 
-const resetPassword = async (request, response) => {
+const resetPassword = async (req, res) => {
     try {
-        const { token, newPassword, confirmPassword } = request.body;
+        const { token, newPassword, confirmPassword } = req.body;
 
         if (!token || !newPassword || !confirmPassword) {
-            return response.status(400).json({
-                message: 'Token dan password baru dan konfirmasi password harus diisi'
+            return res.status(400).json({
+                message: 'Token dan password baru dan konfirmasi password harus diisi.',
             });
         }
 
-        if (!newPassword !== confirmPassword) {
-            return response.status(400).json({
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
                 message: 'Password dan konfirmasi password tidak sesuai'
             });
         }
 
         const resetToken = await resetPasswordToken.findOne({
-            where: { token: token }
+            where: { token: token },
         });
 
         if (!resetToken) {
-            return response.status(400).json({
-                message: 'Token reset password tidak valid atau sudah digunakan'
+            return res.status(400).json({
+                message: 'Token reset password tidak valid atau sudah digunakan.',
             });
         }
 
+        // Gunakan email dari resetToken untuk mencari pengguna
         const user = await db.admin.findOne({ where: { email: resetToken.email } });
 
         if (!user) {
-            return response.status(404).json({
-                message: 'Pengguna dengan email tersebut tidak ditemukan'
+            return res.status(404).json({
+                message: 'Pengguna dengan email tersebut tidak ditemukan.',
             });
         }
 
@@ -203,12 +204,12 @@ const resetPassword = async (request, response) => {
 
         await resetToken.update({ used: true });
 
-        return response.status(200).json({
-            message: 'Password berhasil direset'
+        return res.status(200).json({
+            message: 'Password berhasil direset.',
         });
     } catch (error) {
         console.error(error);
-        return response.status(500).json({
+        return res.status(500).json({
             message: error
         });
     }
