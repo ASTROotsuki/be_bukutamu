@@ -23,7 +23,8 @@ module.exports = (sequelize, DataTypes) => {
     asal_instansi: DataTypes.STRING,
     tanggal_dititipkan: DataTypes.DATE,
     tanggal_diterima: DataTypes.STRING,
-    foto: DataTypes.STRING
+    foto: DataTypes.STRING,
+    status: DataTypes.ENUM("Proses", "Selesai", "Gagal")
   }, {
     sequelize,
     modelName: 'transaksi_kurir',

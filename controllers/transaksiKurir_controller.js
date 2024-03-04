@@ -8,33 +8,11 @@ const Op = require(`sequelize`).Op
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-
-const dotenv = require('dotenv')
-dotenv.config();
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_ACCOUNT_TOKEN;
-const fromNumber = 'whatsapp:+17815377402'
-
-const twilio = require('twilio');
-const { request } = require('http')
-const client = twilio(accountSid, authToken);
-async function sendWhatsAppNotification(phoneNumber, message) {
-    try {
-        const formattedPhoneNumber = `+${phoneNumber.replace(/\D/g, '')}`;
-
-        const messageResult = await client.messages.create({
-            body: "p ada paket",
-            from: fromNumber,
-            to: `whatsapp:${formattedPhoneNumber}`
-        });
-
-        console.log(`WhatsApp message sent with SID: ${messageResult.sid}`);
-    } catch (error) {
-        console.error(`Error sending WhatsApp message: ${error.message}`);
-    }
-}
+const otpGenerator = require('otp-generator')
+otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false });
 
 exports.getAllMoklet = async (request, response) =>{
     try {
@@ -44,8 +22,7 @@ exports.getAllMoklet = async (request, response) =>{
         return response.json({
             success: true,
             data: {
-                siswa: allSiswa,
-                guru: allGuru,
+                data: [allSiswa, allGuru]
             },
             message: 'All students and teachers data loaded successfully',
         });
@@ -139,6 +116,8 @@ exports.addTransaksiKurir = (request, response) => {
         try {
             await tamuModel.create(newTamu);
             await transaksiKurirModel.create(newTransaksiKurir);
+            const whatsappi = await wa.create();
+
 
             if (request.body.id_guru) {
                 const guru = await guruModel.findOne({
@@ -147,7 +126,10 @@ exports.addTransaksiKurir = (request, response) => {
                 if (guru) {
                     // Menggunakan nomor telepon dari data Guru
                     await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                    await sendWhatsAppNotification(guru.no_tlp, `New form created!`);
+                    await whatsappi.sendText(guru.no_tlp+'@c.us', `New form created!`).then((response)=>{
+                        status = true;
+                        message = "berhasil dikirim"
+                    });
                 }
             }
 
@@ -158,13 +140,17 @@ exports.addTransaksiKurir = (request, response) => {
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
                     await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                    await sendWhatsAppNotification(siswa.no_tlp, `New form created!`);
+                    await whatsappi.sendText(siswa.no_tlp+'@c.us', `New form created!`).then((response)=>{
+                        status = true,
+                        message = "berhasil dikirim"
+                    });;
                 }
             }
+            const otpGenerated = generateOTP();
 
             return response.json({
                 success: true,
-                message: `New form has been inserted`   
+                message: `New form has been inserted` 
             });
         } catch (error) {
             return response.json({
