@@ -166,11 +166,17 @@ const forgotPassword = async (request, response) => {
 
 const resetPassword = async (request, response) => {
     try {
-        const { token, newPassword } = request.body;
+        const { token, newPassword, confirmPassword } = request.body;
 
-        if (!token || !newPassword) {
+        if (!token || !newPassword || !confirmPassword) {
             return response.status(400).json({
-                message: 'Token dan password baru harus diisi'
+                message: 'Token dan password baru dan konfirmasi password harus diisi'
+            });
+        }
+
+        if (!newPassword !== confirmPassword) {
+            return res.status(400).json({
+                message: 'Password dan konfirmasi password tidak sesuai'
             });
         }
 
