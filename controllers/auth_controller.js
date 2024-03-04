@@ -233,7 +233,7 @@ async function sendResetEmail(email, token) {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Reset Password',
-        text: `Klik link berikut untuk mereset password: https://bebukutamu.jesica.online/api/reset-password/?token=${token}`
+        text: `Klik link berikut untuk mereset password: https://bukutamu.jesica.online/admin/newpassword/?token=${token}`
     });
 };
 
