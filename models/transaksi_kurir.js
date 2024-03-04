@@ -12,8 +12,8 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       transaksi_kurir.belongsTo(models.tamu, { foreignKey: 'id_tamu' });
-      transaksi_kurir.belongsTo(models.transaksi_kurirSiswa, { foreignKey: 'id_kurirSiswa' });
-      transaksi_kurir.belongsTo(models.transaksi_kurirGuru, { foreignKey: 'id_kurirGuru' });
+      transaksi_kurir.hasMany(models.transaksi_kurirSiswa, { foreignKey: 'id_kurirSiswa' });
+      transaksi_kurir.hasMany(models.transaksi_kurirGuru, { foreignKey: 'id_kurirGuru' });
     }
   }
   transaksi_kurir.init({
@@ -23,8 +23,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4
     },
     id_tamu: DataTypes.UUID,
-    id_kurirSiswa: DataTypes.UUID,
-    id_kurirGuru: DataTypes.UUID,
     asal_instansi: DataTypes.STRING,
     tanggal_dititipkan: DataTypes.DATE,
     tanggal_diterima: DataTypes.STRING,
