@@ -10,7 +10,7 @@ app.get("/get", transaksiKurirController.getAllTransaksiKurir)
 app.post("/add", transaksiKurirController.addTransaksiKurir)
 app.get("/getMoklet", transaksiKurirController.getAllMoklet)
 // app.post("/find",transaksiKurirController.findTransaksiKurir)
-// app.put("/update/:id", transaksiSiswaController.updateTransaksiSiswa)
+app.put("/update/:id", transaksiKurirController.updateTransaksiKurir)
 // app.delete("/delete/:id", transaksiSiswaController.deleteTransaksiSiswa)
 
 module.exports = app
