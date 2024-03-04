@@ -3,6 +3,9 @@ const router = express.Router();
 const { login, profile, updateAdminProfile, forgotPassword, resetPassword } = require('../controllers/auth_controller');
 const jwt = require('jsonwebtoken');
 const upload = require('../controllers/upload_foto');
+const cors = require('cors');
+
+router.use(cors());
 
 // endpoint
 router.post('/login', login)
