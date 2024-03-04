@@ -10,7 +10,7 @@ app.use(cors())
 
 //endpoint
 app.get("/get", transaksiGuruController.getAllTransaksiGuru)
-app.post("/add", upload.single('foto'), transaksiGuruController.addTransaksiGuru)
+app.post("/add", transaksiGuruController.addTransaksiGuru)
 // app.post("/find",transaksiSiswaController.findTransaksiSiswa)
 app.put("/update/:id", transaksiGuruController.updateTransaksiGuru)
 app.delete("/delete/:id", transaksiGuruController.deleteTransaksiGuru)

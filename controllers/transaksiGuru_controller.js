@@ -50,7 +50,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
             const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
             const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss'); 
 
-            filterOptions.createAt = {
+            filterOptions.createdAt = {
                 [Op.between]: [startOfDay, endOfDay],
             };
         }

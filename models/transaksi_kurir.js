@@ -12,19 +12,22 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       transaksi_kurir.belongsTo(models.tamu, { foreignKey: 'id_tamu' });
+      transaksi_kurir.hasOne(models.transaksi_kurirSiswa, { foreignKey: 'id_kurirSiswa' });
+      transaksi_kurir.hasOne(models.transaksi_kurirGuru, { foreignKey: 'id_kurirGuru' });
     }
   }
   transaksi_kurir.init({
     id_transaksiKurir: {
       type: DataTypes.UUID,
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
     },
     id_tamu: DataTypes.UUID,
     asal_instansi: DataTypes.STRING,
     tanggal_dititipkan: DataTypes.DATE,
     tanggal_diterima: DataTypes.STRING,
     foto: DataTypes.STRING,
-    status: DataTypes.ENUM("Proses", "Selesai", "Gagal")
+    status: DataTypes.ENUM("Proses", "Gagal", "Selesai")
   }, {
     sequelize,
     modelName: 'transaksi_kurir',
