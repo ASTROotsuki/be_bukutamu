@@ -165,7 +165,8 @@ exports.addTransaksiKurir = (request, response) => {
             asal_instansi: request.body.asal_instansi,
             tanggal_dititipkan: new Date(),
             tanggal_diterima: request.body.tanggal_diterima,
-            foto: request.file.filename
+            foto: request.file.filename,
+            status: request.body.status
 
         };
         let newTransaksiKurirGuru = {
