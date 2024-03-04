@@ -13,7 +13,7 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-exports.getAllMoklet = async (request, response) =>{
+exports.getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
         const allGuru = await guruModel.findAll();
@@ -68,14 +68,6 @@ exports.getAllTransaksiKurir = async (request, response) => {
             include: [
                 {
                     model: tamuModel,
-                    require: true
-                },
-                {
-                    model: transaksiKurirGuruModel,
-                    require: true
-                },
-                {
-                    model: transaksiKurirSiswaModel,
                     require: true
                 }
             ],
@@ -164,7 +156,7 @@ exports.addTransaksiKurir = (request, response) => {
             tanggal_dititipkan: new Date(),
             tanggal_diterima: request.body.tanggal_diterima,
             foto: request.file.filename,
-            status: request.body.status
+            status: "Proses"
 
         };
         let newTransaksiKurirGuru = {
@@ -188,10 +180,10 @@ exports.addTransaksiKurir = (request, response) => {
                 if (guru) {
                     // Menggunakan nomor telepon dari data Guru
                     await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                    await whatsappi.sendText(guru.no_tlp+'@c.us', `New form created!`).then((response)=>{
-                        status = true;
-                        message = "berhasil dikirim"
-                    });
+                    // await whatsappi.sendText(guru.no_tlp + '@c.us', `New form created!`).then((response) => {
+                    //     status = true;
+                    //     message = "berhasil dikirim"
+                    // });
                 }
             }
 
@@ -202,17 +194,17 @@ exports.addTransaksiKurir = (request, response) => {
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
                     await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                    await whatsappi.sendText(siswa.no_tlp+'@c.us', `New form created!`).then((response)=>{
-                        status = true,
-                        message = "berhasil dikirim"
-                    });;
+                    // await whatsappi.sendText(siswa.no_tlp + '@c.us', `New form created!`).then((response) => {
+                    //     status = true,
+                    //         message = "berhasil dikirim"
+                    // });;
                 }
             }
-            const otpGenerated = generateOTP();
+            
 
             return response.json({
                 success: true,
-                message: `New form has been inserted` 
+                message: `New form has been inserted`
             });
         } catch (error) {
             return response.json({
@@ -220,5 +212,64 @@ exports.addTransaksiKurir = (request, response) => {
                 message: error.message
             });
         }
+    });
+};
+
+
+exports.updateTransaksiKurir = async (request, response) => {
+    upload(request, response, async (err) => {
+        if (err) {
+            return response.json({ message: err });
+        }
+
+        let id_transaksiKurir = request.params.id;
+        let dataTransaksiKurir = {};
+
+        if (!request.file) {
+            dataTransaksiKurir = {
+                asal_instansi: request.body.asal_instansi,
+                tanggal_dititipkan: new Date(),
+                tanggal_diterima: request.body.tanggal_diterima,
+                status: request.body.status
+            };
+        } else {
+            const selectedTransaksiKurir = await transaksi_kurir.findOne({
+                where: { id_transaksiKurir: id_transaksiKurir },
+            });
+
+            if (!selectedTransaksiKurir) {
+                return response.json({
+                    success: false,
+                    message: 'Transaksi Kurir not found',
+                });
+            }
+
+            const oldFotoTransaksiKurir = selectedTransaksiKurir.foto;
+            const pathImage = path.join(__dirname, `../foto`, oldFotoTransaksiKurir);
+
+            if (fs.existsSync(pathImage)) {
+                fs.unlink(pathImage, (error) => console.log(error));
+            }
+            dataTransaksiKurir = {
+                asal_instansi: request.body.asal_instansi,
+                tanggal_dititipkan: new Date(),
+                tanggal_diterima: request.body.tanggal_diterima,
+                foto: request.file.filename,
+                status: request.body.status
+            };
+        }
+        transaksi_kurir.update(dataTransaksiKurir, { where: { id_transaksiKurir: id_transaksiKurir } })
+            .then((result) => {
+                return response.json({
+                    success: true,
+                    message: `Data Form has been updated`,
+                });
+            })
+            .catch((error) => {
+                return response.json({
+                    success: false,
+                    message: error.message,
+                });
+            });
     });
 };
