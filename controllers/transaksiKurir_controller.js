@@ -13,9 +13,6 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-const otpGenerator = require('otp-generator')
-otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false });
-
 exports.getAllMoklet = async (request, response) =>{
     try {
         const allSiswa = await siswaModel.findAll();
