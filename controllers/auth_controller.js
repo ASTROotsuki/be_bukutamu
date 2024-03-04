@@ -209,7 +209,7 @@ const resetPassword = async (request, response) => {
     } catch (error) {
         console.error(error);
         return response.status(500).json({
-            message: 'Terjadi kesalahan pada server'
+            message: error
         });
     }
 };
