@@ -1,8 +1,10 @@
 const express = require(`express`)
 const app = express()
-app.use(express.json())
+const cors = require('cors')
 const transaksiKurirController = require('../controllers/transaksiKurir_controller')
 
+app.use(express.json())
+app.use(cors())
 //endpoint
 app.get("/get", transaksiKurirController.getAllTransaksiKurir)
 app.post("/add", transaksiKurirController.addTransaksiKurir)
