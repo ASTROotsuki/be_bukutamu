@@ -175,7 +175,7 @@ const resetPassword = async (request, response) => {
         }
 
         if (!newPassword !== confirmPassword) {
-            return res.status(400).json({
+            return response.status(400).json({
                 message: 'Password dan konfirmasi password tidak sesuai'
             });
         }
