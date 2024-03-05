@@ -17,7 +17,7 @@ const deleteOldData = async () => {
 
         await transaksi_guru.destroy({
             where: {
-                createAt: {
+                createdAt: {
                     [Op.lt]: oneMonthAgo,
                 },
             },
