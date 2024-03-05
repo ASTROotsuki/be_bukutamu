@@ -17,11 +17,12 @@ exports.getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
         const allGuru = await guruModel.findAll();
+        const allData = [...allSiswa, ...allGuru];
 
         return response.json({
             success: true,
             data: {
-                data: [allSiswa, allGuru]
+                data: allData
             },
             message: 'All students and teachers data loaded successfully',
         });
@@ -96,7 +97,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
 
             const yangDiterima = {
                 nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama) || null,
-                no_tlp: (transaksi_kurirGuru && transaksi_kurirGuru.no_tlp) || (transaksi_kurirSiswa && transaksi_kurirSiswa.no_tlp) || null, 
+                no_tlp: (transaksi_kurirGuru && transaksi_kurirGuru.no_tlp) || (transaksi_kurirSiswa && transaksi_kurirSiswa.no_tlp) || null,
             };
 
             return {
@@ -195,6 +196,11 @@ exports.addTransaksiKurir = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_kurir.create(newTransaksiKurir);
 
+            const ultramsg = require('ultramsg-whatsapp-api');
+            const instance_id = "instance1409" // Ultramsg.com instance id
+            const ultramsg_token = "64be34eeb56d7"  // Ultramsg.com token
+            const api = new ultramsg(instance_id, ultramsg_token);
+
             if (request.body.id_guru) {
                 const guru = await guruModel.findOne({
                     where: { id_guru: request.body.id_guru }
@@ -202,10 +208,8 @@ exports.addTransaksiKurir = (request, response) => {
                 if (guru) {
                     // Menggunakan nomor telepon dari data Guru
                     await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                    // await whatsappi.sendText(guru.no_tlp + '@c.us', `New form created!`).then((response) => {
-                    //     status = true;
-                    //     message = "berhasil dikirim"
-                    // });
+                    await api.sendChatMessage(guru.no_tlp, `New form created!`)
+                    console.log(response)
                 }
             }
 
@@ -216,13 +220,11 @@ exports.addTransaksiKurir = (request, response) => {
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
                     await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                    // await whatsappi.sendText(siswa.no_tlp + '@c.us', `New form created!`).then((response) => {
-                    //     status = true,
-                    //         message = "berhasil dikirim"
-                    // });;
+                    await api.sendChatMessage(siswa.no_tlp, `New form created!`)
+                    console.log(response)
                 }
             }
-            
+
 
             return response.json({
                 success: true,

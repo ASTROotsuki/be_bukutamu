@@ -33,6 +33,7 @@
     "sequelize": "^6.37.0",
     "storage": "^0.2.0",
     "twilio": "^4.22.0",
+    "ultramsg-whatsapp-api": "^1.0.2",
     "uuid": "^9.0.1",
     "uuidv4": "^6.2.13"
   }
