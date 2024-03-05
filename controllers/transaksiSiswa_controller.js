@@ -20,7 +20,7 @@ const deleteOldData = async () => {
 
         await transaksi_siswa.destroy({
             where: {
-                createAt: {
+                createdAt: {
                     [Op.lt]: oneMonthAgo,
                 },
             },
