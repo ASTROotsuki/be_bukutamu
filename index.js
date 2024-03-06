@@ -34,6 +34,7 @@ app.use('/api', authRoute);
 const transaksiGuruRoute = require('./routes/transaksiGuru_routes')
 app.use('/transaksi_guru', transaksiGuruRoute);
 
+
 app.use('/api/transaksi_siswa/media', express.static(path.join(__dirname, 'foto')));
 app.use('/api/profile/media', express.static(path.join(__dirname, 'foto')));
 app.use('/api/transaksi_guru/media', express.static(path.join(__dirname, 'foto')));

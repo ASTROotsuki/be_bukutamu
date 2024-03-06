@@ -13,6 +13,10 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+
+
+
+
 exports.getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
@@ -196,11 +200,6 @@ exports.addTransaksiKurir = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_kurir.create(newTransaksiKurir);
 
-            const ultramsg = require('ultramsg-whatsapp-api');
-            const instance_id = "instance1409" // Ultramsg.com instance id
-            const ultramsg_token = "64be34eeb56d7"  // Ultramsg.com token
-            const api = new ultramsg(instance_id, ultramsg_token);
-
             if (request.body.id_guru) {
                 const guru = await guruModel.findOne({
                     where: { id_guru: request.body.id_guru }
@@ -208,7 +207,7 @@ exports.addTransaksiKurir = (request, response) => {
                 if (guru) {
                     // Menggunakan nomor telepon dari data Guru
                     await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                    await api.sendChatMessage(guru.no_tlp, `New form created!`)
+                    await client.sendMessage(guru.no_tlp, `New form created!`)
                     console.log(response)
                 }
             }
@@ -220,7 +219,7 @@ exports.addTransaksiKurir = (request, response) => {
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
                     await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                    await api.sendChatMessage(siswa.no_tlp, `New form created!`)
+                    await client.sendMessage(siswa.no_tlp, `New form created!`)
                     console.log(response)
                 }
             }
