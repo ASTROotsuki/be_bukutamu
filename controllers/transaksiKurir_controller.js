@@ -1,9 +1,12 @@
-const { transaksi_kurir } = require('../models/index')
-const tamuModel = require('../models/index').tamu
-const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa
-const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru
-const siswaModel = require('../models/index').siswa
-const guruModel = require('../models/index').guru
+const { transaksi_kurir } = require('../models/index');
+const tamuModel = require('../models/index').tamu;
+const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa;
+const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru;
+const { sendOTP, verifyOTP } = require('../otpService');
+const siswaModel = require('../models/index').siswa;
+const guruModel = require('../models/index').guru;
+const otpModel = require('../models/index').otp;
+const otpGenerator = require('otp-generator');
 const { Op } = require(`sequelize`)
 const multer = require('multer');
 const moment = require('moment');
@@ -13,7 +16,47 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-exports.getAllMoklet = async (request, response) => {
+
+
+const sendOTPController = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const siswa = await siswaModel.findOne({ where: { email } });
+        const guru = await guruModel.findOne({ where: { email } });
+
+        if (siswa || guru) {
+            // Jika email ditemukan di antara siswa atau guru
+            await sendOTP(email);
+            return res.status(200).json({ message: 'OTP berhasil dikirim melalui email.' });
+        } else {
+            return res.status(404).json({ message: 'Pengguna dengan email tersebut tidak ditemukan.' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
+const verifyOTPController = async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const isVerified = await verifyOTP(email, otp);
+
+        if (isVerified) {
+            return res.status(200).json({ message: 'Verifikasi OTP berhasil.' });
+        } else {
+            return res.status(400).json({ message: 'Verifikasi OTP gagal.' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
+
+const getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
         const allGuru = await guruModel.findAll();
@@ -32,7 +75,7 @@ exports.getAllMoklet = async (request, response) => {
     }
 }
 
-exports.getAllTransaksiKurir = async (request, response) => {
+const getAllTransaksiKurir = async (request, response) => {
     try {
         const page = parseInt(request.query.page) || 1;
         const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
@@ -130,33 +173,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
     }
 };
 
-// exports.findTransaksiKurir = async (request, response) => {
-
-//     let keyword = request.body.keyword
-
-//     let transaksiKurir = await transaksi_kurir.findAll({
-//         where: {
-//             [Op.or]: [
-//                 { id_tamu__nama_tamu: { [Op.substring]: keyword } },
-//                 { id_tamu__no_tlp: { [Op.substring]: keyword } },
-//                 { id_siswa__nama_siswa: { [Op.substring]: keyword } },
-//                 { id_guru__nama_guru: { [Op.substring]: keyword } },
-//                 { asal_instansi: { [Op.substring]: keyword } },
-//                 { tanggal_dititipkan: { [Op.substring]: keyword } },
-//                 { tanggal_diterima: { [Op.substring]: keyword } },
-//                 { status: { [Op.substring]: keyword } }
-//             ]
-//         }
-//     })
-
-//     return response.json({
-//         success: true,
-//         data: transaksiKurir,
-//         message: `All transaksi have beed loaded`
-//     })
-// };
-
-exports.addTransaksiKurir = (request, response) => {
+const addTransaksiKurir = (request, response) => {
     upload(request, response, async (error) => {
         if (error) {
             return response.json({ message: error });
@@ -240,7 +257,7 @@ exports.addTransaksiKurir = (request, response) => {
 };
 
 
-exports.updateTransaksiKurir = async (request, response) => {
+const updateTransaksiKurir = async (request, response) => {
     upload(request, response, async (err) => {
         if (err) {
             return response.json({ message: err });
@@ -297,3 +314,5 @@ exports.updateTransaksiKurir = async (request, response) => {
             });
     });
 };
+
+module.exports = { sendOTPController, verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir };

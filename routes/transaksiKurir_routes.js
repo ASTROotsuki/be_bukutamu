@@ -1,16 +1,20 @@
 const express = require(`express`)
-const app = express()
+const router = express()
+const cron = require('node-cron')
+const nodemailer = require('nodemailer')
 const cors = require('cors')
-const transaksiKurirController = require('../controllers/transaksiKurir_controller')
+const { sendOTPController, verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir } = require('../controllers/transaksiKurir_controller')
 
-app.use(express.json())
-app.use(cors())
+router.use(express.json());
+router.use(cors());
 //endpoint
-app.get("/get", transaksiKurirController.getAllTransaksiKurir)
-app.post("/add", transaksiKurirController.addTransaksiKurir)
-app.get("/getMoklet", transaksiKurirController.getAllMoklet)
+router.get("/get", getAllTransaksiKurir)
+router.post("/add", addTransaksiKurir)
+router.get("/getMoklet", getAllMoklet)
 // app.post("/find",transaksiKurirController.findTransaksiKurir)
-app.put("/update/:id", transaksiKurirController.updateTransaksiKurir)
+router.put("/update/:id", updateTransaksiKurir)
 // app.delete("/delete/:id", transaksiSiswaController.deleteTransaksiSiswa)
+router.post("/send-otp", sendOTPController)
+router.post("/verify-otp", verifyOTPController)
 
-module.exports = app
+module.exports = router;

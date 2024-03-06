@@ -1,6 +1,7 @@
 const express = require(`express`);
 const cron = require('node-cron');
 const bodyParser = require('body-parser');
+const nodemailer = require('nodemailer');
 const app = express();
 const PORT = 2000;
 const path = require('path')
