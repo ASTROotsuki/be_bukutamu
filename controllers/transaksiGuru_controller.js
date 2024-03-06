@@ -9,19 +9,22 @@ const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-
+require('moment-timezone');
 
 const deleteOldData = async () => {
     try {
         const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+        console.log('oneMonthAgo');
 
-        await transaksi_guru.destroy({
+        const result = await transaksi_guru.destroy({
             where: {
                 createdAt: {
                     [Op.lt]: oneMonthAgo,
                 },
             },
         });
+
+        console.log('Baris yang dihapus:', result);
 
         console.log('Data lama berhasil dihapus');
     } catch (error) {
@@ -30,6 +33,7 @@ const deleteOldData = async () => {
 };
 
 cron.schedule('0 0 1 * *', async () => {
+    console.log('Cron job untuk penghapusan otomatis dimulai');
     await deleteOldData();
     console.log('Penghapusan otomatis selesai');
 });

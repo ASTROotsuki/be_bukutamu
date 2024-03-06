@@ -16,6 +16,34 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+require('moment-timezone');
+
+const deleteOldData = async () => {
+    try {
+        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+        console.log('oneMonthAgo');
+
+        const result = await transaksi_kurir.destroy({
+            where: {
+                createdAt: {
+                    [Op.lt]: oneMonthAgo,
+                },
+            },
+        });
+
+        console.log('Baris yang dihapus:', result);
+
+        console.log('Data lama berhasil dihapus');
+    } catch (error) {
+        console.error('Error saat menghapus data lama:', error);
+    }
+};
+
+cron.schedule('0 0 1 * *', async () => {
+    console.log('Cron job untuk penghapusan otomatis dimulai');
+    await deleteOldData();
+    console.log('Penghapusan otomatis selesai');
+});
 
 
 const sendOTPController = async (req, res) => {
