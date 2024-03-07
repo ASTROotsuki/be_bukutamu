@@ -131,6 +131,8 @@ const getAllTransaksiKurir = async (request, response) => {
 
             filterOptions[Op.or] = [
                 { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
+                { '$siswa.nama_siswa': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
+                { '$guru.nama_guru': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
             ];
         }
 
@@ -168,8 +170,8 @@ const getAllTransaksiKurir = async (request, response) => {
             const { id_transaksiKurir, asal_instansi, tanggal_dititipkan, tanggal_diterima, foto, status, createdAt, updatedAt, tamu, transaksi_kurirGuru, transaksi_kurirSiswa } = row;
 
             const yangDiterima = {
-                nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama) || null,
-                no_tlp: (transaksi_kurirGuru && transaksi_kurirGuru.no_tlp) || (transaksi_kurirSiswa && transaksi_kurirSiswa.no_tlp) || null,
+                nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama),
+                email: (transaksi_kurirGuru && transaksi_kurirGuru.email) || (transaksi_kurirSiswa && transaksi_kurirSiswa.email)
             };
 
             return {
