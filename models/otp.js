@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
      * The models/index file will call this method automatically.
      */
     static associate(models) {
+      otp.belongsTo(models.transaksi_kurir, { foreignKey: 'id_transaskiKurir' });
       // define association here
     }
   }
@@ -22,6 +23,7 @@ module.exports = (sequelize, DataTypes) => {
     email: DataTypes.STRING,
     otp: DataTypes.STRING,
     otpExpiration: DataTypes.DATE,
+    id_transaksiKurir: DataTypes.UUID
   }, {
     sequelize,
     modelName: 'otp',

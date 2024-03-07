@@ -17,6 +17,73 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+require('moment-timezone');
+
+const deleteOldData = async () => {
+    try {
+        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+        console.log('oneMonthAgo');
+
+        const result = await transaksi_kurir.destroy({
+            where: {
+                createdAt: {
+                    [Op.lt]: oneMonthAgo,
+                },
+            },
+        });
+
+        console.log('Baris yang dihapus:', result);
+
+        console.log('Data lama berhasil dihapus');
+    } catch (error) {
+        console.error('Error saat menghapus data lama:', error);
+    }
+};
+
+cron.schedule('0 0 1 * *', async () => {
+    console.log('Cron job untuk penghapusan otomatis dimulai');
+    await deleteOldData();
+    console.log('Penghapusan otomatis selesai');
+});
+
+
+const sendOTPController = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const siswa = await siswaModel.findOne({ where: { email } });
+        const guru = await guruModel.findOne({ where: { email } });
+
+        if (siswa || guru) {
+            // Jika email ditemukan di antara siswa atau guru
+            await sendOTP(email);
+            return res.status(200).json({ message: 'OTP berhasil dikirim melalui email.' });
+        } else {
+            return res.status(404).json({ message: 'Pengguna dengan email tersebut tidak ditemukan.' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
+const verifyOTPController = async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const isVerified = await verifyOTP(email, otp);
+
+        if (isVerified) {
+            return res.status(200).json({ message: 'Verifikasi OTP berhasil.' });
+        } else {
+            return res.status(400).json({ message: 'Verifikasi OTP gagal.' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
 
 const getAllMoklet = async (request, response) => {
     try {
