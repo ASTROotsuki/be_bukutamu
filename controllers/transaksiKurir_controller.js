@@ -178,7 +178,7 @@ const getAllTransaksiKurir = async (request, response) => {
             const { id_transaksiKurir, asal_instansi, tanggal_dititipkan, tanggal_diterima, foto, status, createdAt, updatedAt, tamu, transaksi_kurirGuru, transaksi_kurirSiswa } = row;
 
             const yangDiterima = {
-                nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama),
+                nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama_guru) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama_siswa),
                 email: (transaksi_kurirGuru && transaksi_kurirGuru.email) || (transaksi_kurirSiswa && transaksi_kurirSiswa.email)
             };
 
