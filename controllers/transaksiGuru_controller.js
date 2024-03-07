@@ -9,20 +9,22 @@ const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-
+require('moment-timezone');
 
 cron.schedule('0 0 * * *', async () => {
     try {
         const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+        console.log('oneMonthAgo');
 
-        // Find and delete data older than one month
-        const oldFotoTransaksiGuru = await transaksi_guru.findAll({
+        await transaksi_guru.destroy({
             where: {
                 createdAt: {
                     [Op.lt]: oneMonthAgo,
                 },
             },
         });
+
+        console.log('Baris yang dihapus:', result);
 
         oldFotoTransaksiGuru.forEach(async (transaksiGuru) => {
             const oldFotoTransaksiGuru = transaksiGuru.foto;
@@ -39,6 +41,11 @@ cron.schedule('0 0 * * *', async () => {
     } catch (error) {
         console.error('Error during automated deletion:', error);
     }
+});
+
+cron.schedule('0 0 1 * *', async () => {
+    await deleteOldData();
+    console.log('Penghapusan otomatis selesai');
 });
 
 exports.getAllTransaksiGuru = async (request, response) => {

@@ -1,6 +1,7 @@
 const express = require(`express`);
 const cron = require('node-cron');
 const bodyParser = require('body-parser');
+const nodemailer = require('nodemailer');
 const app = express();
 const PORT = 2000;
 const path = require('path')
@@ -8,6 +9,7 @@ const cors = require(`cors`);
 require('dotenv').config();
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.json());
 // const bodyParser = require('body-parser')
 // app.use(bodyParser.urlencoded({ extended: true }))
 // app.use(bodyParser.json())

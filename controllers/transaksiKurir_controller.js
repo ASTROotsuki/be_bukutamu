@@ -1,10 +1,14 @@
-const { transaksi_kurir } = require('../models/index')
-const tamuModel = require('../models/index').tamu
-const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa
-const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru
-const siswaModel = require('../models/index').siswa
-const guruModel = require('../models/index').guru
+const { transaksi_kurir } = require('../models/index');
+const tamuModel = require('../models/index').tamu;
+const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa;
+const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru;
+const { sendOTP, verifyOTP } = require('../otpService');
+const siswaModel = require('../models/index').siswa;
+const guruModel = require('../models/index').guru;
+const otpModel = require('../models/index').otp;
+const otpGenerator = require('otp-generator');
 const { Op } = require(`sequelize`)
+const cron = require('node-cron');
 const multer = require('multer');
 const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
@@ -13,40 +17,6 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-const cron = require('node-cron')
-
-cron.schedule('0 0 * * *', async () => {
-    try {
-        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
-
-        // Find and delete data older than one month
-        const oldTransaksiKurir = await transaksi_kurir.findAll({
-            where: {
-                createdAt: {
-                    [Op.lt]: oneMonthAgo,
-                },
-            },
-        });
-
-        oldTransaksiKurir.forEach(async (transaksiKurir) => {
-            const oldFotoTransaksiKurir = transaksiKurir.foto;
-            const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiKurir);
-
-            if (fs.existsSync(pathImage)) {
-                fs.unlinkSync(pathImage); // Use fs.unlinkSync to remove the file synchronously
-            }
-
-            await transaksiKurir.destroy();
-        });
-
-        console.log('Automated deletion completed');
-    } catch (error) {
-        console.error('Error during automated deletion:', error);
-    }
-});
-
-
-
 exports.getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
@@ -66,7 +36,7 @@ exports.getAllMoklet = async (request, response) => {
     }
 }
 
-exports.getAllTransaksiKurir = async (request, response) => {
+const getAllTransaksiKurir = async (request, response) => {
     try {
         const page = parseInt(request.query.page) || 1;
         const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
@@ -93,6 +63,8 @@ exports.getAllTransaksiKurir = async (request, response) => {
 
             filterOptions[Op.or] = [
                 { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
+                { '$siswa.nama_siswa': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
+                { '$guru.nama_guru': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
             ];
         }
 
@@ -103,6 +75,14 @@ exports.getAllTransaksiKurir = async (request, response) => {
             include: [
                 {
                     model: tamuModel,
+                    require: true
+                },
+                {
+                    model: transaksiKurirGuruModel,
+                    require: true
+                },
+                {
+                    model: transaksiKurirSiswaModel,
                     require: true
                 }
             ],
@@ -130,8 +110,8 @@ exports.getAllTransaksiKurir = async (request, response) => {
             const { id_transaksiKurir, asal_instansi, tanggal_dititipkan, tanggal_diterima, foto, status, createdAt, updatedAt, tamu, transaksi_kurirGuru, transaksi_kurirSiswa } = row;
 
             const yangDiterima = {
-                nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama) || null,
-                no_tlp: (transaksi_kurirGuru && transaksi_kurirGuru.no_tlp) || (transaksi_kurirSiswa && transaksi_kurirSiswa.no_tlp) || null,
+                nama: (transaksi_kurirGuru && transaksi_kurirGuru.nama) || (transaksi_kurirSiswa && transaksi_kurirSiswa.nama),
+                email: (transaksi_kurirGuru && transaksi_kurirGuru.email) || (transaksi_kurirSiswa && transaksi_kurirSiswa.email)
             };
 
             return {
@@ -164,33 +144,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
     }
 };
 
-// exports.findTransaksiKurir = async (request, response) => {
-
-//     let keyword = request.body.keyword
-
-//     let transaksiKurir = await transaksi_kurir.findAll({
-//         where: {
-//             [Op.or]: [
-//                 { id_tamu__nama_tamu: { [Op.substring]: keyword } },
-//                 { id_tamu__no_tlp: { [Op.substring]: keyword } },
-//                 { id_siswa__nama_siswa: { [Op.substring]: keyword } },
-//                 { id_guru__nama_guru: { [Op.substring]: keyword } },
-//                 { asal_instansi: { [Op.substring]: keyword } },
-//                 { tanggal_dititipkan: { [Op.substring]: keyword } },
-//                 { tanggal_diterima: { [Op.substring]: keyword } },
-//                 { status: { [Op.substring]: keyword } }
-//             ]
-//         }
-//     })
-
-//     return response.json({
-//         success: true,
-//         data: transaksiKurir,
-//         message: `All transaksi have beed loaded`
-//     })
-// };
-
-exports.addTransaksiKurir = (request, response) => {
+const addTransaksiKurir = (request, response) => {
     upload(request, response, async (error) => {
         if (error) {
             return response.json({ message: error });
@@ -269,7 +223,7 @@ exports.addTransaksiKurir = (request, response) => {
 };
 
 
-exports.updateTransaksiKurir = async (request, response) => {
+const updateTransaksiKurir = async (request, response) => {
     upload(request, response, async (err) => {
         if (err) {
             return response.json({ message: err });
@@ -326,3 +280,35 @@ exports.updateTransaksiKurir = async (request, response) => {
             });
     });
 };
+
+const updateTransaksiKurirStatus = async (request, response) => {
+    const { id_transaksiKurir, status } = request.body;
+
+    try {
+        const transaksi = await transaksi_kurir.findOne({
+            where: { id_transaksiKurir }
+        });
+
+        if (!transaksi) {
+            return response.json({
+                success: false,
+                message: `Transaksi dengan ID ${id_transaksiKurir} tidak ditemukan`
+            });
+        }
+
+        transaksi.status = status;
+        await transaksi.save();
+
+        return response.json({
+            success: true,
+            message: `Transaksi dengan ID ${id_transaksiKurir} status updated to ${status}`
+        });
+    } catch (error) {
+        return response.json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+module.exports = { sendOTPController, verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir, updateTransaksiKurirStatus };
