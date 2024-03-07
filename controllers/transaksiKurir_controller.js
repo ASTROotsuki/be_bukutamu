@@ -17,7 +17,8 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
-exports.getAllMoklet = async (request, response) => {
+
+const getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
         const allGuru = await guruModel.findAll();
