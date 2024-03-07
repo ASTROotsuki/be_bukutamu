@@ -192,6 +192,31 @@ exports.addTransaksiSiswa = (request, response) => {
     });
 };
 
+function sendNotificationEmail() {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+        }
+    });
+
+    let mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Notification',
+        text: 'Halo ada seseorang yang ingin bertemu denganmu'
+    };
+
+    transporter.sendMail(mailOptions, function (error, info ) {
+        if (error) {
+            console.error('Error while sending notification email:', error);
+        } else {
+            console.log('Notification email sent:', info.response);
+        }
+    });
+}
+
 
 exports.updateTransaksiSiswa = async (request, response) => {
     upload(request, response, async (err) => {
