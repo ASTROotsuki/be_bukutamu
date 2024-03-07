@@ -3,15 +3,17 @@ const otpGenerator = require('otp-generator');
 const { Op } = require('sequelize');
 const siswaModel = require('./models/index').siswa;
 const guruModel = require('./models/index').guru;
+const transaksiKurirModel = require('./models/index').transaksi_kurir
 const otpModel  = require('./models/index').otp;
 
-const sendOTP = async (email) => {
+
+const sendOTP = async (email, id_transaksiKurir) => {
     try {
         // Generate OTP
         const otp = otpGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
 
         // Simpan OTP ke database atau sesuai kebutuhan Anda
-        await otpModel.update({ otp }, { where: { email } });
+        await otpModel.update({ otp }, { where: { email, id_transaksiKurir } });
 
         // Kirim email
         const transporter = nodemailer.createTransport({
@@ -40,13 +42,14 @@ const sendOTP = async (email) => {
     }
 };
 
-const verifyOTP = async (email, otp) => {
+const verifyOTP = async (email, otp, id_transaksiKurir) => {
     try {
         // Cari email di model siswa
         let userModel = siswaModel;
         let user = await userModel.findOne({
             where: {
                 email,
+                id_transaksiKurir,
                 // Sesuaikan dengan kebutuhan, misalnya: updatedAt: { [Op.gte]: new Date(new Date() - 5 * 60 * 1000) }
             },
         });
@@ -57,6 +60,7 @@ const verifyOTP = async (email, otp) => {
             user = await userModel.findOne({
                 where: {
                     email,
+                    id_transaksiKurir,
                     // Sesuaikan dengan kebutuhan
                 },
             });
@@ -64,7 +68,7 @@ const verifyOTP = async (email, otp) => {
 
         if (user) {
             // Clear OTP setelah verifikasi berhasil
-            await otpModel.update({ otp: null }, { where: { email } });
+            await otpModel.update({ otp: null }, { where: { email, id_transaksiKurir } });
             console.log('OTP berhasil diverifikasi.');
             return true;
         } else {

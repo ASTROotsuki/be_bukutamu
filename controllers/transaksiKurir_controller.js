@@ -48,7 +48,7 @@ cron.schedule('0 0 1 * *', async () => {
 
 
 const sendOTPController = async (req, res) => {
-    const { email } = req.body;
+    const { email, id_transaksiKurir } = req.body;
 
     try {
         const siswa = await siswaModel.findOne({ where: { email } });
@@ -56,7 +56,7 @@ const sendOTPController = async (req, res) => {
 
         if (siswa || guru) {
             // Jika email ditemukan di antara siswa atau guru
-            await sendOTP(email);
+            await sendOTP(email, id_transaksiKurir);
             return res.status(200).json({ message: 'OTP berhasil dikirim melalui email.' });
         } else {
             return res.status(404).json({ message: 'Pengguna dengan email tersebut tidak ditemukan.' });
@@ -68,10 +68,10 @@ const sendOTPController = async (req, res) => {
 };
 
 const verifyOTPController = async (req, res) => {
-    const { email, otp } = req.body;
+    const { email, otp, id_transaksiKurir } = req.body;
 
     try {
-        const isVerified = await verifyOTP(email, otp);
+        const isVerified = await verifyOTP(email, otp, id_transaksiKurir);
 
         if (isVerified) {
             return res.status(200).json({ message: 'Verifikasi OTP berhasil.' });

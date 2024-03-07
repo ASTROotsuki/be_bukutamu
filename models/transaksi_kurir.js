@@ -14,6 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       transaksi_kurir.belongsTo(models.tamu, { foreignKey: 'id_tamu' });
       transaksi_kurir.hasOne(models.transaksi_kurirSiswa, { foreignKey: 'id_kurirSiswa' });
       transaksi_kurir.hasOne(models.transaksi_kurirGuru, { foreignKey: 'id_kurirGuru' });
+      transaksi_kurir.hasOne(models.otp, {foreignKey: 'id_otp' });
     }
   }
   transaksi_kurir.init({
