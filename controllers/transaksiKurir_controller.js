@@ -344,4 +344,34 @@ const updateTransaksiKurir = async (request, response) => {
     });
 };
 
-module.exports = { sendOTPController, verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir };
+const updateTransaksiKurirStatus = async (request, response) => {
+    const { id_transaksiKurir, status } = request.body;
+
+    try {
+        const transaksi = await transaksi_kurir.findOne({
+            where: { id_transaksiKurir }
+        });
+
+        if (!transaksi) {
+            return response.json({
+                success: false,
+                message: `Transaksi dengan ID ${id_transaksiKurir} tidak ditemukan`
+            });
+        }
+
+        transaksi.status = status;
+        await transaksi.save();
+
+        return response.json({
+            success: true,
+            message: `Transaksi dengan ID ${id_transaksiKurir} status updated to ${status}`
+        });
+    } catch (error) {
+        return response.json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+module.exports = { sendOTPController, verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir, updateTransaksiKurirStatus };
