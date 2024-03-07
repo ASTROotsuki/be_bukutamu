@@ -8,6 +8,7 @@ const guruModel = require('../models/index').guru;
 const otpModel = require('../models/index').otp;
 const otpGenerator = require('otp-generator');
 const { Op } = require(`sequelize`)
+const cron = require('node-cron');
 const multer = require('multer');
 const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
