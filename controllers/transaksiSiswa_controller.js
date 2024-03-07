@@ -178,6 +178,8 @@ exports.addTransaksiSiswa = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_siswa.create(newTransaksiSiswa);
 
+            sendNotificationEmail();
+
 
             return response.json({
                 success: true,
