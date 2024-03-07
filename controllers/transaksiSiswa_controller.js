@@ -5,6 +5,7 @@ const { Op } = require(`sequelize`);
 const moment = require('moment');
 const multer = require('multer');
 const cron = require('node-cron');
+const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const uuid = require('uuid');
 const uuid4 = uuid.v4();
