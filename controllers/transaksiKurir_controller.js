@@ -13,7 +13,37 @@ const fs = require('fs');
 const wa = require('@open-wa/wa-automate')
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
+const cron = require('node-cron')
 
+cron.schedule('0 0 * * *', async () => {
+    try {
+        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
+
+        // Find and delete data older than one month
+        const oldTransaksiKurir = await transaksi_kurir.findAll({
+            where: {
+                createdAt: {
+                    [Op.lt]: oneMonthAgo,
+                },
+            },
+        });
+
+        oldTransaksiKurir.forEach(async (transaksiKurir) => {
+            const oldFotoTransaksiKurir = transaksiKurir.foto;
+            const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiKurir);
+
+            if (fs.existsSync(pathImage)) {
+                fs.unlinkSync(pathImage); // Use fs.unlinkSync to remove the file synchronously
+            }
+
+            await transaksiKurir.destroy();
+        });
+
+        console.log('Automated deletion completed');
+    } catch (error) {
+        console.error('Error during automated deletion:', error);
+    }
+});
 
 
 

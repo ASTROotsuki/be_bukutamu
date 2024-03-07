@@ -11,11 +11,12 @@ const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
 
 
-const deleteOldData = async () => {
+cron.schedule('0 0 * * *', async () => {
     try {
         const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
 
-        await transaksi_guru.destroy({
+        // Find and delete data older than one month
+        const oldFotoTransaksiGuru = await transaksi_guru.findAll({
             where: {
                 createdAt: {
                     [Op.lt]: oneMonthAgo,
@@ -23,17 +24,22 @@ const deleteOldData = async () => {
             },
         });
 
-        console.log('Data lama berhasil dihapus');
+        oldFotoTransaksiGuru.forEach(async (transaksiGuru) => {
+            const oldFotoTransaksiGuru = transaksiGuru.foto;
+            const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiGuru);
+
+            if (fs.existsSync(pathImage)) {
+                fs.unlinkSync(pathImage); // Use fs.unlinkSync to remove the file synchronously
+            }
+
+            await transaksiGuru.destroy();
+        });
+
+        console.log('Automated deletion completed');
     } catch (error) {
-        console.error('Error saat menghapus data lama:', error);
+        console.error('Error during automated deletion:', error);
     }
-};
-
-cron.schedule('0 0 1 * *', async () => {
-    await deleteOldData();
-    console.log('Penghapusan otomatis selesai');
 });
-
 
 exports.getAllTransaksiGuru = async (request, response) => {
     try {
@@ -48,7 +54,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
 
         if (startDate) {
             const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss'); 
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
 
             filterOptions.createdAt = {
                 [Op.between]: [startOfDay, endOfDay],
@@ -57,7 +63,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
 
         const searchQuery = request.query.search;
         if (searchQuery) {
-            
+
             const lowercaseSearchQuery = searchQuery.toLowerCase();
 
             filterOptions[Op.or] = [
@@ -116,7 +122,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
     }
 };
 
-exports.findTransaksiGuru= async (request, response) => {
+exports.findTransaksiGuru = async (request, response) => {
 
     let keyword = request.body.keyword
 
@@ -156,7 +162,7 @@ exports.addTransaksiGuru = (request, response) => {
 
         };
 
-        let newTransaksiGuru= {
+        let newTransaksiGuru = {
             id_transaksiGuru: uuidv4(),
             id_tamu: newTamu.id_tamu,
             id_guru: request.body.id_guru,
@@ -196,7 +202,7 @@ exports.updateTransaksiGuru = async (request, response) => {
         let dataTransaksiGuru = {};
 
         if (!request.file) {
-            dataTransaksiGuru= {
+            dataTransaksiGuru = {
                 id_guru: request.body.id_guru,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,

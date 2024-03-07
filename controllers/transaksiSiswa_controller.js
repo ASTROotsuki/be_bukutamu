@@ -13,12 +13,12 @@ const fs = require('fs');
 const { error } = require('console');
 const upload = require('./upload_foto').single(`foto`)
 
-
-const deleteOldData = async () => {
+cron.schedule('0 0 * * *', async () => {
     try {
         const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
 
-        await transaksi_siswa.destroy({
+        // Find and delete data older than one month
+        const oldTransaksiSiswa = await transaksi_siswa.findAll({
             where: {
                 createdAt: {
                     [Op.lt]: oneMonthAgo,
@@ -26,17 +26,22 @@ const deleteOldData = async () => {
             },
         });
 
-        console.log('Data lama berhasil dihapus');
+        oldTransaksiSiswa.forEach(async (transaksiSiswa) => {
+            const oldFotoTransaksiSiswa = transaksiSiswa.foto;
+            const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiSiswa);
+
+            if (fs.existsSync(pathImage)) {
+                fs.unlinkSync(pathImage); // Use fs.unlinkSync to remove the file synchronously
+            }
+
+            await transaksiSiswa.destroy();
+        });
+
+        console.log('Automated deletion completed');
     } catch (error) {
-        console.error('Error saat menghapus data lama:', error);
+        console.error('Error during automated deletion:', error);
     }
-};
-
-cron.schedule('0 0 1 * *', async () => {
-    await deleteOldData();
-    console.log('Penghapusan otomatis selesai');
 });
-
 
 exports.getAllTransaksiSiswa = async (request, response) => {
     try {
