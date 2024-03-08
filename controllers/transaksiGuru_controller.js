@@ -1,6 +1,6 @@
 const { transaksi_guru } = require('../models/index');
 const tamuModel = require('../models/index').tamu;
-const guruModel = require('../models/index').guru;
+const { guru } = require('../models/index');
 const { Op } = require(`sequelize`);
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
@@ -86,7 +86,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
             where: filterOptions,
             include: [
                 {
-                    model: guruModel,
+                    model: guru,
                     require: true
                 },
                 {
@@ -181,18 +181,24 @@ exports.addTransaksiGuru = (request, response) => {
             keterangan: request.body.keterangan
 
         };
-        try {
-            await tamuModel.create(newTamu);
-            await transaksi_guru.create(newTransaksiGuru);
+         try {
+            const tamuModel = await tamuModel.create(newTamu);
+            const transaksi_guru = await transaksi_guru.create(newTransaksiGuru);
 
-            sendNotificationEmail();
+            const Guru = await guru.findByPk(request.body.id_guru);
 
+            if (!Guru) {
+                throw new Error("Guru not found");
+            }
+
+            sendNotificationEmail(Guru.email);
 
             return response.json({
                 success: true,
                 message: `New form has been inserted`
             });
         } catch (error) {
+            console.log(error)
             return response.json({
                 success: false,
                 message: error.message
@@ -203,7 +209,7 @@ exports.addTransaksiGuru = (request, response) => {
 
 function sendNotificationEmail() {
     let transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'gmail',
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD
