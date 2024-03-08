@@ -4,6 +4,7 @@ const guruModel = require('../models/index').guru;
 const { Op } = require(`sequelize`);
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
 const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
@@ -176,7 +177,10 @@ exports.addTransaksiGuru = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_guru.create(newTransaksiGuru);
 
-            sendNotificationEmail();
+            const guru = await guruModel.findOne({ where: { id_guru: request.body.id_guru } });
+            const email = guru.email;
+
+            sendNotificationEmail(email);
 
 
             return response.json({
@@ -192,7 +196,7 @@ exports.addTransaksiGuru = (request, response) => {
     });
 };
 
-function sendNotificationEmail() {
+function sendNotificationEmail(email) {
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -205,7 +209,7 @@ function sendNotificationEmail() {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Notification',
-        text: 'Halo ada yang ingin bertemu denganmu'
+        html: '<h1><strong>Halo, ada yang ingin bertemu denganmu!</strong></h1>'
     };
 
     transporter.sendMail(mailOptions, function (error, info) {

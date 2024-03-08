@@ -179,7 +179,10 @@ exports.addTransaksiSiswa = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_siswa.create(newTransaksiSiswa);
 
-            sendNotificationEmail();
+            const siswa = await siswaModel.findOne({ where: { id_siswa: request.body.id_siswa } });
+            const email = siswa.email;
+
+            sendNotificationEmail(email);
 
 
             return response.json({
@@ -195,7 +198,7 @@ exports.addTransaksiSiswa = (request, response) => {
     });
 };
 
-function sendNotificationEmail() {
+function sendNotificationEmail(email) {
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -208,7 +211,7 @@ function sendNotificationEmail() {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Notification',
-        text: 'Halo ada seseorang yang ingin bertemu denganmu'
+        html: '<h1><strong>Halo, ada yang ingin bertemu denganmu!</strong></h1>'
     };
 
     transporter.sendMail(mailOptions, function (error, info ) {
