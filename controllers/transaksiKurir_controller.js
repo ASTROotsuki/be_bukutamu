@@ -47,31 +47,11 @@ cron.schedule('0 0 1 * *', async () => {
 });
 
 
-const sendOTPController = async (req, res) => {
-    const { email } = req.body;
-
-    try {
-        const siswa = await siswaModel.findOne({ where: { email } });
-        const guru = await guruModel.findOne({ where: { email } });
-
-        if (siswa || guru) {
-            // Jika email ditemukan di antara siswa atau guru
-            await sendOTP(email);
-            return res.status(200).json({ message: 'OTP berhasil dikirim melalui email.' });
-        } else {
-            return res.status(404).json({ message: 'Pengguna dengan email tersebut tidak ditemukan.' });
-        }
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
-    }
-};
-
 const verifyOTPController = async (req, res) => {
-    const { email, otp } = req.body;
+    const { email, otp, id_transaksiKurir } = req.body;
 
     try {
-        const isVerified = await verifyOTP(email, otp);
+        const isVerified = await verifyOTP(email, otp, id_transaksiKurir);
 
         if (isVerified) {
             return res.status(200).json({ message: 'Verifikasi OTP berhasil.' });
@@ -259,20 +239,17 @@ const addTransaksiKurir = (request, response) => {
                 if (guru) {
                     // Menggunakan nomor telepon dari data Guru
                     await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                    await client.sendMessage(guru.no_tlp, `New form created!`)
-                    console.log(response)
-                }
+                } 
             }
 
             if (request.body.id_siswa) {
                 const siswa = await siswaModel.findOne({
-                    where: { id_siswa: request.body.id_siswa }
+                    where: { id_siswa: request.body.id_siswa, email : email }
                 });
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
                     await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                    await client.sendMessage(siswa.no_tlp, `New form created!`)
-                    console.log(response)
+;
                 }
             }
 
@@ -379,4 +356,4 @@ const updateTransaksiKurirStatus = async (request, response) => {
     }
 };
 
-module.exports = { sendOTPController, verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir, updateTransaksiKurirStatus };
+module.exports = { verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir, updateTransaksiKurirStatus };
