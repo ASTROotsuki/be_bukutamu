@@ -2,6 +2,7 @@ const express = require(`express`)
 const cron = require('node-cron')
 const cors = require('cors')
 const upload = require('../controllers/upload_foto')
+const nodemailer = require('nodemailer')
 const app = express()
 const transaksiGuruController = require('../controllers/transaksiGuru_controller')
 

@@ -1,5 +1,6 @@
 const express = require(`express`);
 const cron = require('node-cron');
+const nodemailer = require('nodemailer')
 const cors = require('cors');
 const app = express();
 const upload = require('../controllers/upload_foto');

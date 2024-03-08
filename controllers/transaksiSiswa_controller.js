@@ -5,6 +5,7 @@ const { Op } = require(`sequelize`);
 const moment = require('moment');
 const multer = require('multer');
 const cron = require('node-cron');
+const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const uuid = require('uuid');
 const uuid4 = uuid.v4();
@@ -187,6 +188,8 @@ exports.addTransaksiSiswa = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_siswa.create(newTransaksiSiswa);
 
+            sendNotificationEmail();
+
 
             return response.json({
                 success: true,
@@ -200,6 +203,31 @@ exports.addTransaksiSiswa = (request, response) => {
         }
     });
 };
+
+function sendNotificationEmail() {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+        }
+    });
+
+    let mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Notification',
+        text: 'Halo ada seseorang yang ingin bertemu denganmu'
+    };
+
+    transporter.sendMail(mailOptions, function (error, info ) {
+        if (error) {
+            console.error('Error while sending notification email:', error);
+        } else {
+            console.log('Notification email sent:', info.response);
+        }
+    });
+}
 
 
 exports.updateTransaksiSiswa = async (request, response) => {

@@ -3,6 +3,7 @@ const tamuModel = require('../models/index').tamu;
 const guruModel = require('../models/index').guru;
 const { Op } = require(`sequelize`);
 const cron = require('node-cron');
+const nodemailer = require('nodemailer');
 const moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
@@ -184,6 +185,8 @@ exports.addTransaksiGuru = (request, response) => {
             await tamuModel.create(newTamu);
             await transaksi_guru.create(newTransaksiGuru);
 
+            sendNotificationEmail();
+
 
             return response.json({
                 success: true,
@@ -197,6 +200,31 @@ exports.addTransaksiGuru = (request, response) => {
         }
     });
 };
+
+function sendNotificationEmail() {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+        }
+    });
+
+    let mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Notification',
+        text: 'Halo ada yang ingin bertemu denganmu'
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+            console.error('Error while sending notification email:', error);
+        } else {
+            console.log('Notification email sent:', info.response);
+        }
+    });
+}
 
 
 exports.updateTransaksiGuru = async (request, response) => {
