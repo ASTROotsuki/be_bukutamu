@@ -15,13 +15,23 @@ require('moment-timezone');
 
 const deleteOldData = async () => {
     try {
-        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
-        console.log('oneMonthAgo');
+        const today = moment().date();
+        const dayOfMonth = 1;
+        
+        // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
+        const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
+        
+        // Set tanggal menjadi 1
+        targetMonth.date(dayOfMonth);
+        
+        const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
+        
+        console.log('Tanggal penghapusan otomatis:', targetDate);
 
         const result = await transaksi_guru.destroy({
             where: {
                 createdAt: {
-                    [Op.lt]: oneMonthAgo,
+                    [Op.lt]: targetDate,
                 },
             },
         });
@@ -179,8 +189,9 @@ exports.addTransaksiGuru = (request, response) => {
 
             const guru = await guruModel.findOne({ where: { id_guru: request.body.id_guru } });
             const email = guru.email;
+            const namaGuru = guru.nama_guru;
 
-            sendNotificationEmail(email);
+            sendNotificationEmail(email, namaGuru);
 
 
             return response.json({
@@ -196,7 +207,7 @@ exports.addTransaksiGuru = (request, response) => {
     });
 };
 
-function sendNotificationEmail(email) {
+function sendNotificationEmail(email, namaGuru) {
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -209,7 +220,7 @@ function sendNotificationEmail(email) {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Notification',
-        html: '<h1><strong>Halo, ada yang ingin bertemu denganmu!</strong></h1>'
+        html: `<h1><strong>Halo ${namaGuru}, ada yang ingin bertemu denganmu!</strong></h1>`
     };
 
     transporter.sendMail(mailOptions, function (error, info) {
