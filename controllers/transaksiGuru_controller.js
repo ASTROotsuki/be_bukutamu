@@ -1,26 +1,38 @@
-const { transaksi_guru } = require('../models/index');
-const tamuModel = require('../models/index').tamu;
-const { guru } = require('../models/index');
-const { Op } = require(`sequelize`);
-const cron = require('node-cron');
-const nodemailer = require('nodemailer');
-const moment = require('moment');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const fs = require('fs');
-const { error } = require('console');
-const upload = require('./upload_foto').single(`foto`)
-require('moment-timezone');
+    const { transaksi_guru } = require('../models/index');
+    const tamuModel = require('../models/index').tamu;
+    const guruModel = require('../models/index').guru;
+    const { guru } = require('../models/index');
+    const { Op } = require(`sequelize`);
+    const cron = require('node-cron');
+    const nodemailer = require('nodemailer');
+    const multer = require('multer');
+    const moment = require('moment');
+    const { v4: uuidv4 } = require('uuid');
+    const path = require('path');
+    const fs = require('fs');
+    const { error } = require('console');
+    const upload = require('./upload_foto').single(`foto`)
+    require('moment-timezone');
 
 cron.schedule('0 0 * * *', async () => {
     try {
-        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
-        console.log('oneMonthAgo');
+        const today = moment().date();
+        const dayOfMonth = 1;
+        
+        // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
+        const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
+        
+        // Set tanggal menjadi 1
+        targetMonth.date(dayOfMonth);
+        
+        const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
+        
+        console.log('Tanggal penghapusan otomatis:', targetDate);
 
         await transaksi_guru.destroy({
             where: {
                 createdAt: {
-                    [Op.lt]: oneMonthAgo,
+                    [Op.lt]: targetDate,
                 },
             },
         });
@@ -182,16 +194,15 @@ exports.addTransaksiGuru = (request, response) => {
 
         };
          try {
-            const tamuModel = await tamuModel.create(newTamu);
-            const transaksi_guru = await transaksi_guru.create(newTransaksiGuru);
+            await tamuModel.create(newTamu);
+            await transaksi_guru.create(newTransaksiGuru);
 
-            const Guru = await guru.findByPk(request.body.id_guru);
+            const guru = await guruModel.findOne({ where: { id_guru: request.body.id_guru } });
+            const email = guru.email;
+            const namaGuru = guru.nama_guru;
 
-            if (!Guru) {
-                throw new Error("Guru not found");
-            }
+            sendNotificationEmail(email, namaGuru);
 
-            sendNotificationEmail(Guru.email);
 
             return response.json({
                 success: true,
@@ -207,9 +218,10 @@ exports.addTransaksiGuru = (request, response) => {
     });
 };
 
-function sendNotificationEmail() {
+function sendNotificationEmail(email, namaGuru) {
     let transporter = nodemailer.createTransport({
         host: 'gmail',
+        port: 25,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD
@@ -220,7 +232,7 @@ function sendNotificationEmail() {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Notification',
-        text: 'Halo ada yang ingin bertemu denganmu'
+        html: `<h1><strong>Halo ${namaGuru}, ada yang ingin bertemu denganmu!</strong></h1>`
     };
 
     transporter.sendMail(mailOptions, function (error, info) {
