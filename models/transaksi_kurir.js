@@ -14,7 +14,6 @@ module.exports = (sequelize, DataTypes) => {
       transaksi_kurir.belongsTo(models.tamu, { foreignKey: 'id_tamu' });
       transaksi_kurir.hasOne(models.transaksi_kurirSiswa, { foreignKey: 'id_kurirSiswa' });
       transaksi_kurir.hasOne(models.transaksi_kurirGuru, { foreignKey: 'id_kurirGuru' });
-      transaksi_kurir.hasOne(models.otp, {foreignKey: 'id_otp' });
     }
   }
   transaksi_kurir.init({
@@ -28,7 +27,8 @@ module.exports = (sequelize, DataTypes) => {
     tanggal_dititipkan: DataTypes.DATE,
     tanggal_diterima: DataTypes.STRING,
     foto: DataTypes.STRING,
-    status: DataTypes.ENUM("Proses", "Gagal", "Selesai")
+    status: DataTypes.ENUM("Proses", "Gagal", "Selesai"),
+    otp: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'transaksi_kurir',

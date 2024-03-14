@@ -2,12 +2,13 @@ const { transaksi_kurir } = require('../models/index');
 const tamuModel = require('../models/index').tamu;
 const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa;
 const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru;
-const { sendOTP, verifyOTP } = require('../otpService');
 const siswaModel = require('../models/index').siswa;
 const guruModel = require('../models/index').guru;
 const otpModel = require('../models/index').otp;
 const otpGenerator = require('otp-generator');
+const speakeasy = require('speakeasy')
 const { Op } = require(`sequelize`)
+const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const multer = require('multer');
 const moment = require('moment');
@@ -21,13 +22,23 @@ require('moment-timezone');
 
 const deleteOldData = async () => {
     try {
-        const oneMonthAgo = moment().subtract(1, 'months').format('YYYY-MM-DD HH:mm:ss');
-        console.log('oneMonthAgo');
+        const today = moment().date();
+        const dayOfMonth = 1;
+        
+        // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
+        const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
+        
+        // Set tanggal menjadi 1
+        targetMonth.date(dayOfMonth);
+        
+        const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
+        
+        console.log('Tanggal penghapusan otomatis:', targetDate);
 
         const result = await transaksi_kurir.destroy({
             where: {
                 createdAt: {
-                    [Op.lt]: oneMonthAgo,
+                    [Op.lt]: targetDate,
                 },
             },
         });
@@ -47,25 +58,7 @@ cron.schedule('0 0 1 * *', async () => {
 });
 
 
-const verifyOTPController = async (req, res) => {
-    const { email, otp, id_transaksiKurir } = req.body;
-
-    try {
-        const isVerified = await verifyOTP(email, otp, id_transaksiKurir);
-
-        if (isVerified) {
-            return res.status(200).json({ message: 'Verifikasi OTP berhasil.' });
-        } else {
-            return res.status(400).json({ message: 'Verifikasi OTP gagal.' });
-        }
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
-    }
-};
-
-
-const getAllMoklet = async (request, response) => {
+exports.getAllMoklet = async (request, response) => {
     try {
         const allSiswa = await siswaModel.findAll();
         const allGuru = await guruModel.findAll();
@@ -84,7 +77,7 @@ const getAllMoklet = async (request, response) => {
     }
 }
 
-const getAllTransaksiKurir = async (request, response) => {
+exports.getAllTransaksiKurir = async (request, response) => {
     try {
         const page = parseInt(request.query.page) || 1;
         const ITEMS_PER_PAGE = parseInt(request.query.limit) || 5;
@@ -192,7 +185,40 @@ const getAllTransaksiKurir = async (request, response) => {
     }
 };
 
-const addTransaksiKurir = (request, response) => {
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+    }
+});
+
+const sendOTPByEmail = async (email, otp) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Kode OTP untuk verifikasi',
+            text: `Kode OTP Anda adalah: ${otp}`
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log('Email OTP terkirim');
+    } catch (error) {
+        console.error('Gagal mengirim email OTP', error);
+        throw new Error('Gagal mengirim emal OTP');
+    }
+};
+
+const generateOTP = () => {
+    return otpGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
+};
+
+const verifyOTP = (otp, inputOTP) => {
+    return otp === inputOTP;
+};
+
+exports.addTransaksiKurir = (request, response) => {
     upload(request, response, async (error) => {
         if (error) {
             return response.json({ message: error });
@@ -201,6 +227,8 @@ const addTransaksiKurir = (request, response) => {
         if (!request.file) {
             return response.json({ message: `Nothing to Upload` });
         }
+
+        const generatedOTP = generateOTP();
 
         let newTamu = {
             id_tamu: uuidv4(),
@@ -215,7 +243,8 @@ const addTransaksiKurir = (request, response) => {
             tanggal_dititipkan: new Date(),
             tanggal_diterima: request.body.tanggal_diterima,
             foto: request.file.filename,
-            status: "Proses"
+            status: "Proses",
+            otp: generatedOTP
 
         };
         let newTransaksiKurirGuru = {
@@ -239,7 +268,7 @@ const addTransaksiKurir = (request, response) => {
                 if (guru) {
                     // Menggunakan nomor telepon dari data Guru
                     await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                } 
+                }
             }
 
             if (request.body.id_siswa) {
@@ -249,14 +278,45 @@ const addTransaksiKurir = (request, response) => {
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
                     await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-;
+                }
+            }
+
+            if (request.body.id_guru) {
+                const transaksiKurirGuru = await transaksiKurirGuruModel.findOne({
+                    where: { id_guru: request.body.id_guru }
+                });
+
+                if (transaksiKurirGuru) {
+                    const guru = await guruModel.findOne({
+                        where: { id_guru: transaksiKurirGuru.id_guru }
+                    });
+
+                    if (guru && guru.email) {
+                        await sendOTPByEmail(guru.email, generatedOTP);
+                    }
+                }
+            }
+
+            if (request.body.id_siswa) {
+                const transaksiKurirSiswa = await transaksiKurirSiswaModel.findOne({
+                    where: { id_siswa: request.body.id_siswa }
+                });
+
+                if (transaksiKurirSiswa) {
+                    const siswa = await siswaModel.findOne({
+                        where: { id_siswa: transaksiKurirSiswa.id_siswa }
+                    });
+
+                    if (siswa && siswa.email) {
+                        await sendOTPByEmail(siswa.email, generatedOTP);
+                    }
                 }
             }
 
 
             return response.json({
                 success: true,
-                message: `New form has been inserted`
+                message: `Kode OTP telah dikirim melalui email dan Form telah ditambahkan`
             });
         } catch (error) {
             return response.json({
@@ -267,8 +327,34 @@ const addTransaksiKurir = (request, response) => {
     });
 };
 
+exports.verifyOTP = async (request, response) => {
+    const { id_transaksiKurir, inputOTP } = request.body;
 
-const updateTransaksiKurir = async (request, response) => {
+    try {
+        const transaksiKurir = await transaksi_kurir.findOne({
+            where: { id_transaksiKurir }
+        });
+
+        if (!transaksiKurir) {
+            return response.json({ success: false, message: 'Transaksi kurir ditemukan' });
+        }
+
+        if (verifyOTP(transaksiKurir.otp, inputOTP)) {
+            await transaksi_kurir.update({ status: 'Selesai' }, {
+                where: { id_transaksiKurir }
+            });
+
+            return response.json({ success: true, message: 'Kode OTP berhasil diverifikasi' });
+        } else {
+            return response.json({ success: false, message: 'Kode OTP tidak valid' });
+        }
+    } catch (error) {
+        return response.json({ success: false, message: error.message });
+    }
+};
+
+
+exports.updateTransaksiKurir = async (request, response) => {
     upload(request, response, async (err) => {
         if (err) {
             return response.json({ message: err });
@@ -325,35 +411,3 @@ const updateTransaksiKurir = async (request, response) => {
             });
     });
 };
-
-const updateTransaksiKurirStatus = async (request, response) => {
-    const { id_transaksiKurir, status } = request.body;
-
-    try {
-        const transaksi = await transaksi_kurir.findOne({
-            where: { id_transaksiKurir }
-        });
-
-        if (!transaksi) {
-            return response.json({
-                success: false,
-                message: `Transaksi dengan ID ${id_transaksiKurir} tidak ditemukan`
-            });
-        }
-
-        transaksi.status = status;
-        await transaksi.save();
-
-        return response.json({
-            success: true,
-            message: `Transaksi dengan ID ${id_transaksiKurir} status updated to ${status}`
-        });
-    } catch (error) {
-        return response.json({
-            success: false,
-            message: error.message
-        });
-    }
-};
-
-module.exports = { verifyOTPController, getAllMoklet, getAllTransaksiKurir, addTransaksiKurir, updateTransaksiKurir, updateTransaksiKurirStatus };

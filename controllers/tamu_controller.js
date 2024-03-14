@@ -1,27 +1,27 @@
 const tamuModel = require('../models/index').tamu;
-const Op = require( 'sequelize' ).Op;
+const transaksiKurirModel = require('../models/index').transaksi_kurir;
+const transaksiGuruModel = require('../models/index').transaksi_guru;
+const transaksiSiswaModel = require('../models/index').transaksi_siswa;
+const Op = require('sequelize').Op;
 const uuid = require('uuid');
+const { response } = require('../routes/tamu.routes');
 const uuid4 = uuid.v4();
 
 exports.getAllTamu = async (request, response) => {
-    let tamu = await tamuModel.findAll()
-
     try {
-        if (tamu.length === 0) {
-            return response.status(404).json({
-                success: false,
-                message: "Data not found"
-            });
-        }
+        const tamu = await tamuModel.findAll();
+        const tamuCount = tamu.length; // count the number of tamu
+
         return response.json({
             success: true,
             data: tamu,
-            message: 'All tamu have been loaded'
-        })
+            tamuCount, // include tamuCount in the response
+            message: 'All tamu have been loaded',
+        });
     } catch (error) {
         console.error(error);
         console.log(tamuModel);
-        return response.status(500).json({ message: error });
+        return response.status(500).json({ message: error.message });
     }
 };
 
@@ -31,8 +31,8 @@ exports.findTamu = async (request, response) => {
     let tamu = await tamuModelfindAll({
         where: {
             [Op.or]: [
-                { nama_tamu: { [Op.substring]: keyword }},
-                { no_tlp: { [Op.substring]: keyword }}
+                { nama_tamu: { [Op.substring]: keyword } },
+                { no_tlp: { [Op.substring]: keyword } }
             ]
         }
     })
@@ -101,3 +101,42 @@ exports.deleteTamu = (request, response) => {
             })
         })
 };
+
+exports.getTamuInTransaksiKurir = async (request, response) => {
+    try {
+        const transaksiKurir = await transaksiKurirModel.findAll();
+        const transaksiKurirCount = transaksiKurir.length; // count the number of tamu
+
+        return response.json({
+            success: true,
+            data: transaksiKurir,
+            transaksiKurirCount, // include tamuCount in the response
+            message: 'All data layanan kirim have been loaded',
+        });
+    } catch (error) {
+        console.error(error);
+        console.log(tamuModel);
+        return response.status(500).json({ message: error.message });
+    }
+};
+
+exports.getTamuUmum = async (request, response)=>{
+        try {
+            const allTransaksiSiswa = await transaksiSiswaModel.findAll();
+            const allTransaksiGuru = await transaksiGuruModel.findAll();
+            const allTamuUmum = [...allTransaksiSiswa, ...allTransaksiGuru];
+            const tamuUmumCount = allTamuUmum.length;
+    
+            return response.json({
+                success: true,
+                data: {
+                    data: allTamuUmum,
+                    tamuUmumCount,
+                },
+                message: 'All students and teachers data loaded successfully',
+            });
+        } catch (error) {
+            console.error(error);
+            return response.status(500).json({ message: error.message });
+        }
+    }

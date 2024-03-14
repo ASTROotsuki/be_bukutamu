@@ -19,7 +19,7 @@ const sendOTP = async (email, id_transaksiKurir) => {
         const transporter = nodemailer.createTransport({
             // Ganti dengan konfigurasi SMTP yang sesuai
             host: 'gmail',
-            port: 25,
+            port: 465,
             secure: false,
             auth: {
                 user: process.env.EMAIL_USER,

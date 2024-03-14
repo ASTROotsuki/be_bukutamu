@@ -1,20 +1,19 @@
-    const { transaksi_guru } = require('../models/index');
-    const tamuModel = require('../models/index').tamu;
-    const guruModel = require('../models/index').guru;
-    const { guru } = require('../models/index');
-    const { Op } = require(`sequelize`);
-    const cron = require('node-cron');
-    const nodemailer = require('nodemailer');
-    const multer = require('multer');
-    const moment = require('moment');
-    const { v4: uuidv4 } = require('uuid');
-    const path = require('path');
-    const fs = require('fs');
-    const { error } = require('console');
-    const upload = require('./upload_foto').single(`foto`)
-    require('moment-timezone');
+const { transaksi_guru } = require('../models/index');
+const tamuModel = require('../models/index').tamu;
+const guruModel = require('../models/index').guru;
+const { Op } = require(`sequelize`);
+const cron = require('node-cron');
+const nodemailer = require('nodemailer');
+const multer = require('multer');
+const moment = require('moment');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
+const { error } = require('console');
+const upload = require('./upload_foto').single(`foto`)
+require('moment-timezone');
 
-cron.schedule('0 0 * * *', async () => {
+const deleteOldData = async () => {
     try {
         const today = moment().date();
         const dayOfMonth = 1;
@@ -29,7 +28,7 @@ cron.schedule('0 0 * * *', async () => {
         
         console.log('Tanggal penghapusan otomatis:', targetDate);
 
-        await transaksi_guru.destroy({
+        const result = await transaksi_guru.destroy({
             where: {
                 createdAt: {
                     [Op.lt]: targetDate,
@@ -39,27 +38,18 @@ cron.schedule('0 0 * * *', async () => {
 
         console.log('Baris yang dihapus:', result);
 
-        oldFotoTransaksiGuru.forEach(async (transaksiGuru) => {
-            const oldFotoTransaksiGuru = transaksiGuru.foto;
-            const pathImage = path.join(__dirname, '../foto', oldFotoTransaksiGuru);
-
-            if (fs.existsSync(pathImage)) {
-                fs.unlinkSync(pathImage); // Use fs.unlinkSync to remove the file synchronously
-            }
-
-            await transaksiGuru.destroy();
-        });
-
-        console.log('Automated deletion completed');
+        console.log('Data lama berhasil dihapus');
     } catch (error) {
-        console.error('Error during automated deletion:', error);
+        console.error('Error saat menghapus data lama:', error);
     }
-});
+};
 
 cron.schedule('0 0 1 * *', async () => {
+    console.log('Cron job untuk penghapusan otomatis dimulai');
     await deleteOldData();
     console.log('Penghapusan otomatis selesai');
 });
+
 
 exports.getAllTransaksiGuru = async (request, response) => {
     try {
@@ -74,7 +64,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
 
         if (startDate) {
             const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss'); 
 
             filterOptions.createdAt = {
                 [Op.between]: [startOfDay, endOfDay],
@@ -83,7 +73,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
 
         const searchQuery = request.query.search;
         if (searchQuery) {
-
+            
             const lowercaseSearchQuery = searchQuery.toLowerCase();
 
             filterOptions[Op.or] = [
@@ -98,7 +88,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
             where: filterOptions,
             include: [
                 {
-                    model: guru,
+                    model: guruModel,
                     require: true
                 },
                 {
@@ -142,7 +132,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
     }
 };
 
-exports.findTransaksiGuru = async (request, response) => {
+exports.findTransaksiGuru= async (request, response) => {
 
     let keyword = request.body.keyword
 
@@ -182,7 +172,7 @@ exports.addTransaksiGuru = (request, response) => {
 
         };
 
-        let newTransaksiGuru = {
+        let newTransaksiGuru= {
             id_transaksiGuru: uuidv4(),
             id_tamu: newTamu.id_tamu,
             id_guru: request.body.id_guru,
@@ -193,7 +183,7 @@ exports.addTransaksiGuru = (request, response) => {
             keterangan: request.body.keterangan
 
         };
-         try {
+        try {
             await tamuModel.create(newTamu);
             await transaksi_guru.create(newTransaksiGuru);
 
@@ -209,7 +199,6 @@ exports.addTransaksiGuru = (request, response) => {
                 message: `New form has been inserted`
             });
         } catch (error) {
-            console.log(error)
             return response.json({
                 success: false,
                 message: error.message
@@ -220,8 +209,7 @@ exports.addTransaksiGuru = (request, response) => {
 
 function sendNotificationEmail(email, namaGuru) {
     let transporter = nodemailer.createTransport({
-        host: 'gmail',
-        port: 25,
+        service: 'gmail',
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD
@@ -255,7 +243,7 @@ exports.updateTransaksiGuru = async (request, response) => {
         let dataTransaksiGuru = {};
 
         if (!request.file) {
-            dataTransaksiGuru = {
+            dataTransaksiGuru= {
                 id_guru: request.body.id_guru,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,
