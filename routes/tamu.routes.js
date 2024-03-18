@@ -6,8 +6,8 @@ const tamu = require('../models/tamu')
 
 //endpoint
 app.get("/get",tamuController.getAllTamu)
-app.get("/getLayananKirim", tamuController.getTamuInTransaksiKurir)
-app.get("/getTamuUmum", tamuController.getTamuUmum)
+// app.get("/getLayananKirim", tamuController.getTamuInTransaksiKurir)
+app.get("/dashboard", tamuController.getDashboard)
 // app.post("/find",guruController.findGuru)
 
 module.exports = app

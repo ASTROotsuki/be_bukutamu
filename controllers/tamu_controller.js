@@ -102,35 +102,42 @@ exports.deleteTamu = (request, response) => {
         })
 };
 
-exports.getTamuInTransaksiKurir = async (request, response) => {
-    try {
-        const transaksiKurir = await transaksiKurirModel.findAll();
-        const transaksiKurirCount = transaksiKurir.length; // count the number of tamu
+// exports.getTamuInTransaksiKurir = async (request, response) => {
+//     try {
+//         const transaksiKurir = await transaksiKurirModel.findAll();
+//         const transaksiKurirCount = transaksiKurir.length; // count the number of tamu
 
-        return response.json({
-            success: true,
-            data: transaksiKurir,
-            transaksiKurirCount, // include tamuCount in the response
-            message: 'All data layanan kirim have been loaded',
-        });
-    } catch (error) {
-        console.error(error);
-        console.log(tamuModel);
-        return response.status(500).json({ message: error.message });
-    }
-};
+//         return response.json({
+//             success: true,
+//             data: transaksiKurir,
+//             transaksiKurirCount, // include tamuCount in the response
+//             message: 'All data layanan kirim have been loaded',
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         console.log(tamuModel);
+//         return response.status(500).json({ message: error.message });
+//     }
+// };
 
-exports.getTamuUmum = async (request, response)=>{
+exports.getDashboard = async (request, response)=>{
         try {
             const allTransaksiSiswa = await transaksiSiswaModel.findAll();
             const allTransaksiGuru = await transaksiGuruModel.findAll();
+            const allTransaksiKurir = await transaksiKurirModel.findAll();
+            const allTamu = await tamuModel.findAll();
             const allTamuUmum = [...allTransaksiSiswa, ...allTransaksiGuru];
+            const tamuCount = allTamu.length;
             const tamuUmumCount = allTamuUmum.length;
+            const layananKirimCount = allTransaksiKurir.length;
     
             return response.json({
                 success: true,
                 data: {
-                    data: allTamuUmum,
+                    tamuUmum: allTamuUmum,
+                    layananKirim: allTransaksiKurir,
+                    tamuCount,
+                    layananKirimCount,
                     tamuUmumCount,
                 },
                 message: 'All students and teachers data loaded successfully',
