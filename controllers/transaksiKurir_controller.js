@@ -273,7 +273,7 @@ exports.addTransaksiKurir = (request, response) => {
 
             if (request.body.id_siswa) {
                 const siswa = await siswaModel.findOne({
-                    where: { id_siswa: request.body.id_siswa }
+                    where: { id_siswa: request.body.id_siswa, email : email }
                 });
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
@@ -316,7 +316,7 @@ exports.addTransaksiKurir = (request, response) => {
 
             return response.json({
                 success: true,
-                message: `Kode OTP telah dikirim melalui email dan New form has been inserted`
+                message: `Kode OTP telah dikirim melalui email dan Form telah ditambahkan`
             });
         } catch (error) {
             return response.json({
@@ -354,7 +354,7 @@ exports.verifyOTP = async (request, response) => {
 };
 
 
-const updateTransaksiKurir = async (request, response) => {
+exports.updateTransaksiKurir = async (request, response) => {
     upload(request, response, async (err) => {
         if (err) {
             return response.json({ message: err });

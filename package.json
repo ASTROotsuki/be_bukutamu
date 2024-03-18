@@ -26,18 +26,21 @@
     "moment-timezone": "^0.5.45",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
+    "node-mailer": "^0.1.1",
     "nodemailer": "^6.9.9",
     "nodemon": "^3.0.3",
     "otp-generator": "^4.0.1",
     "path": "^0.12.7",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
+    "qrcode-terminal": "^0.12.0",
     "sequelize": "^6.37.0",
     "speakeasy": "^2.0.0",
     "storage": "^0.2.0",
     "twilio": "^4.22.0",
     "ultramsg-whatsapp-api": "^1.0.2",
     "uuid": "^9.0.1",
-    "uuidv4": "^6.2.13"
+    "uuidv4": "^6.2.13",
+    "whatsapp-web.js": "^1.23.0"
   }
 }

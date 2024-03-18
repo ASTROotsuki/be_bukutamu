@@ -1,7 +1,5 @@
 const express = require(`express`)
 const router = express()
-const cron = require('node-cron')
-const nodemailer = require('nodemailer')
 const cors = require('cors')
 const transaksiKurirController = require('../controllers/transaksiKurir_controller')
 
