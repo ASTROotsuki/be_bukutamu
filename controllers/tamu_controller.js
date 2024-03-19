@@ -159,10 +159,22 @@ exports.getDashboard = async (request, response) => {
             const tamuUmumCount = allTamuUmum.length;
             const layananKirimCount = allTransaksiKurir.length;
 
+            const transaksiCounts = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDateOfWeek.getTime() + i * 24 * 60 * 60 * 1000);
+                const countSiswa = allTransaksiSiswa.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                const countGuru = allTransaksiGuru.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                const countKurir = allTransaksiKurir.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum: countSiswa + countGuru, layananKirim: countKurir });
+            }
+
             // Logika untuk mempersiapkan data chart sesuai dengan jenis chart yang diminta
             if (chartType === 'line') {
                 // Logic untuk chart garis
-                chartData = []; // Susun data sesuai kebutuhan untuk chart garis
+                chartData = [
+                    { name: 'Layanan Kirim', data: transaksiCounts.map(transaction => transaction.layananKirim) },
+                    { name: 'Tamu Umum', data: transaksiCounts.map(transaction => transaction.tamuUmum) }
+                ]; // Susun data sesuai kebutuhan untuk chart garis
             } else if (chartType === 'pie') {
                 // Logic untuk pie chart
                 chartData = {
