@@ -119,30 +119,55 @@ exports.deleteTamu = (request, response) => {
 //     }
 // };
 
-exports.getDashboard = async (request, response)=>{
-        try {
-            const allTransaksiSiswa = await transaksiSiswaModel.findAll();
-            const allTransaksiGuru = await transaksiGuruModel.findAll();
-            const allTransaksiKurir = await transaksiKurirModel.findAll();
-            const allTamu = await tamuModel.findAll();
-            const allTamuUmum = [...allTransaksiSiswa, ...allTransaksiGuru];
-            const tamuCount = allTamu.length;
-            const tamuUmumCount = allTamuUmum.length;
-            const layananKirimCount = allTransaksiKurir.length;
-    
-            return response.json({
-                success: true,
-                data: {
-                    tamuUmum: allTamuUmum,
-                    layananKirim: allTransaksiKurir,
-                    tamuCount,
-                    layananKirimCount,
-                    tamuUmumCount,
-                },
-                message: 'All students and teachers data loaded successfully',
-            });
-        } catch (error) {
-            console.error(error);
-            return response.status(500).json({ message: error.message });
+exports.getDashboard = async (request, response) => {
+    try {
+        let { week } = request.query; // Ambil parameter minggu dari query string
+        let startDateOfWeek, endDateOfWeek;
+
+        // Jika parameter minggu tidak diberikan, atur minggu menjadi 0 (tanpa filtering per minggu)
+        if (!week) {
+            week = 0;
+        } else {
+            // Tentukan rentang waktu berdasarkan minggu yang diminta
+            const today = new Date();
+            startDateOfWeek = new Date(today.getTime() - (week * 7) * 24 * 60 * 60 * 1000); // Menghitung tanggal awal minggu
+            endDateOfWeek = new Date(startDateOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000); // Menghitung tanggal akhir minggu
         }
+
+        // Ambil data transaksi siswa, guru, dan kurir dalam rentang waktu yang sesuai
+        const whereClause = {};
+        if (startDateOfWeek && endDateOfWeek) {
+            whereClause.createdAt = {
+                [Op.between]: [startDateOfWeek, endDateOfWeek]
+            };
+        }
+        
+        const allTransaksiSiswa = await transaksiSiswaModel.findAll({ where: whereClause });
+        const allTransaksiGuru = await transaksiGuruModel.findAll({ where: whereClause });
+        const allTransaksiKurir = await transaksiKurirModel.findAll({ where: whereClause });
+
+        // Gabungkan transaksi siswa dan guru menjadi satu array
+        const allTamu = await tamuModel.findAll();
+        const allTamuUmum = [...allTransaksiSiswa, ...allTransaksiGuru];
+        
+        // Hitung jumlah data
+        const tamuCount = allTamu.length;
+        const tamuUmumCount = allTamuUmum.length;
+        const layananKirimCount = allTransaksiKurir.length;
+
+        return response.json({
+            success: true,
+            data: {
+                tamuUmum: allTamuUmum,
+                layananKirim: allTransaksiKurir,
+                tamuCount,
+                layananKirimCount,
+                tamuUmumCount,
+            },
+            message: 'Data loaded successfully',
+        });
+    } catch (error) {
+        console.error(error);
+        return response.status(500).json({ message: error.message });
     }
+};
