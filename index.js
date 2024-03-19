@@ -3,6 +3,8 @@ const cron = require('node-cron');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 const app = express();
+const { Op } = require('sequelize');
+const http = require('http');
 const PORT = 2000;
 const path = require('path')
 const cors = require(`cors`);
@@ -38,6 +40,9 @@ app.use('/transaksi_guru', transaksiGuruRoute);
 
 const tamuRoute = require('./routes/tamu.routes')
 app.use('/tamu', tamuRoute)
+
+const dashboardRoute = require('./routes/dashboard.routes')
+app.use('/dashboard', dashboardRoute)
 
 
 app.use('/api/transaksi_siswa/media', express.static(path.join(__dirname, 'foto')));
