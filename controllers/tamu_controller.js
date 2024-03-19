@@ -4,7 +4,6 @@ const transaksiGuruModel = require('../models/index').transaksi_guru;
 const transaksiSiswaModel = require('../models/index').transaksi_siswa;
 const Op = require('sequelize').Op;
 const uuid = require('uuid');
-const { response } = require('../routes/tamu.routes');
 const uuid4 = uuid.v4();
 
 exports.getAllTamu = async (request, response) => {
