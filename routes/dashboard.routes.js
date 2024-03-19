@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = ('cors');
 const router = express();
-const { getTotalVisitors, getWeeklyVisitors } = require('../controllers/dasboard_controller');
+const { getTotalVisitors, getWeeklyVisitors } = require('../controllers/dashboard_controller');
 
 router.use(express.json());
 
