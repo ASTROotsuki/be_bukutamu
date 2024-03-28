@@ -19,15 +19,15 @@ const deleteOldData = async () => {
     try {
         const today = moment().date();
         const dayOfMonth = 1;
-        
+
         // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
         const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
-        
+
         // Set tanggal menjadi 1
         targetMonth.date(dayOfMonth);
-        
+
         const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
-        
+
         console.log('Tanggal penghapusan otomatis:', targetDate);
 
         await transaksi_siswa.destroy({
@@ -69,6 +69,11 @@ exports.getAllTransaksiSiswa = async (request, response) => {
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
         const filterOptions = {};
+        const orderOptions = {
+            order: [
+                ['createdAt', 'DESC'],
+            ],
+        };
 
         // Tambahkan filter berdasarkan tanggal jika startDate diberikan
         const startDate = request.query.startDate;
@@ -107,6 +112,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
                     require: true
                 },
             ],
+            order: orderOptions.order,
         });
 
         const totalItems = transaksiSiswa.count;
@@ -195,8 +201,11 @@ exports.addTransaksiSiswa = (request, response) => {
 
         };
         try {
-            await tamuModel.create(newTamu);
-            await transaksi_siswa.create(newTransaksiSiswa);
+            const transaction = await sequelize.transaction();
+
+            await tamuModel.create(newTamu, { transaction });
+            await transaksi_siswa.create(newTransaksiSiswa, { transaction });
+            await transaction.commit();
 
             const siswa = await siswaModel.findOne({ where: { id_siswa: request.body.id_siswa } });
             const email = siswa.email;
@@ -210,7 +219,7 @@ exports.addTransaksiSiswa = (request, response) => {
                 message: `New form has been inserted`
             });
         } catch (error) {
-            return response.json({
+            return response.status(400).json({
                 success: false,
                 message: error.message
             });
@@ -234,7 +243,7 @@ function sendNotificationEmail(email, namaSiswa) {
         html: `<h1><strong>Halo ${namaSiswa}, ada yang ingin bertemu denganmu!</strong></h1>`
     };
 
-    transporter.sendMail(mailOptions, function (error, info ) {
+    transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             console.error('Error while sending notification email:', error);
         } else {

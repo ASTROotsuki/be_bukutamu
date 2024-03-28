@@ -17,15 +17,15 @@ const deleteOldData = async () => {
     try {
         const today = moment().date();
         const dayOfMonth = 1;
-        
+
         // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
         const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
-        
+
         // Set tanggal menjadi 1
         targetMonth.date(dayOfMonth);
-        
+
         const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
-        
+
         console.log('Tanggal penghapusan otomatis:', targetDate);
 
         const result = await transaksi_guru.destroy({
@@ -58,13 +58,18 @@ exports.getAllTransaksiGuru = async (request, response) => {
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
         const filterOptions = {};
+        const orderOptions = {
+            order: [
+                ['createdAt', 'DESC'],
+            ],
+        };
 
         // Tambahkan filter berdasarkan tanggal
         const startDate = request.query.startDate;
 
         if (startDate) {
             const startOfDay = moment(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss'); 
+            const endOfDay = moment(startDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
 
             filterOptions.createdAt = {
                 [Op.between]: [startOfDay, endOfDay],
@@ -73,7 +78,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
 
         const searchQuery = request.query.search;
         if (searchQuery) {
-            
+
             const lowercaseSearchQuery = searchQuery.toLowerCase();
 
             filterOptions[Op.or] = [
@@ -96,6 +101,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
                     require: true
                 },
             ],
+            order: orderOptions.order,
         });
 
         const totalItems = transaksiGuru.count;
@@ -132,7 +138,7 @@ exports.getAllTransaksiGuru = async (request, response) => {
     }
 };
 
-exports.findTransaksiGuru= async (request, response) => {
+exports.findTransaksiGuru = async (request, response) => {
 
     let keyword = request.body.keyword
 
@@ -172,7 +178,7 @@ exports.addTransaksiGuru = (request, response) => {
 
         };
 
-        let newTransaksiGuru= {
+        let newTransaksiGuru = {
             id_transaksiGuru: uuidv4(),
             id_tamu: newTamu.id_tamu,
             id_guru: request.body.id_guru,
@@ -184,8 +190,11 @@ exports.addTransaksiGuru = (request, response) => {
 
         };
         try {
-            await tamuModel.create(newTamu);
-            await transaksi_guru.create(newTransaksiGuru);
+            const transaction = await sequelize.transaction();
+
+            await tamuModel.create(newTamu, { transaction });
+            await transaksi_guru.create(newTransaksiGuru, { transaction });
+            await transaction.commit();
 
             const guru = await guruModel.findOne({ where: { id_guru: request.body.id_guru } });
             const email = guru.email;
@@ -199,7 +208,7 @@ exports.addTransaksiGuru = (request, response) => {
                 message: `New form has been inserted`
             });
         } catch (error) {
-            return response.json({
+            return response.status(400).json({
                 success: false,
                 message: error.message
             });
@@ -243,7 +252,7 @@ exports.updateTransaksiGuru = async (request, response) => {
         let dataTransaksiGuru = {};
 
         if (!request.file) {
-            dataTransaksiGuru= {
+            dataTransaksiGuru = {
                 id_guru: request.body.id_guru,
                 janji: request.body.janji,
                 jumlah_tamu: request.body.jumlah_tamu,

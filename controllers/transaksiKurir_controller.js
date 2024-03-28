@@ -24,15 +24,15 @@ const deleteOldData = async () => {
     try {
         const today = moment().date();
         const dayOfMonth = 1;
-        
+
         // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
         const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
-        
+
         // Set tanggal menjadi 1
         targetMonth.date(dayOfMonth);
-        
+
         const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
-        
+
         console.log('Tanggal penghapusan otomatis:', targetDate);
 
         const result = await transaksi_kurir.destroy({
@@ -84,6 +84,11 @@ exports.getAllTransaksiKurir = async (request, response) => {
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
         const filterOptions = {};
+        const orderOptions = {
+            order: [
+                ['createdAt', 'DESC'],
+            ],
+        };
 
         // Tambahkan filter berdasarkan tanggal jika startDate diberikan
         const startDate = request.query.startDate;
@@ -127,6 +132,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
                     require: true
                 }
             ],
+            order: orderOptions.order,
         });
 
         const totalItems = transaksiKurir.count;
@@ -258,8 +264,11 @@ exports.addTransaksiKurir = (request, response) => {
             id_siswa: request.body.id_siswa
         };
         try {
-            await tamuModel.create(newTamu);
-            await transaksi_kurir.create(newTransaksiKurir);
+            const transaction = await sequelize.transaction();
+
+            await tamuModel.create(newTamu, { transaction });
+            await transaksi_kurir.create(newTransaksiKurir, { transaction });
+            await transaction.commit();
 
             if (request.body.id_guru) {
                 const guru = await guruModel.findOne({
@@ -273,7 +282,7 @@ exports.addTransaksiKurir = (request, response) => {
 
             if (request.body.id_siswa) {
                 const siswa = await siswaModel.findOne({
-                    where: { id_siswa: request.body.id_siswa, email : email }
+                    where: { id_siswa: request.body.id_siswa, email: email }
                 });
                 if (siswa) {
                     // Menggunakan nomor telepon dari data Siswa
@@ -319,7 +328,7 @@ exports.addTransaksiKurir = (request, response) => {
                 message: `Kode OTP telah dikirim melalui email dan Form telah ditambahkan`
             });
         } catch (error) {
-            return response.json({
+            return response.status(400).json({
                 success: false,
                 message: error.message
             });
