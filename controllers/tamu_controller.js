@@ -121,7 +121,7 @@ exports.deleteTamu = (request, response) => {
 
 exports.getDashboard = async (request, response) => {
     try {
-        let { week } = request.query; // Ambil parameter minggu dari query string
+        let { week, chartType } = request.query; // Ambil parameter minggu dan jenis chart dari query string
         let startDateOfWeek, endDateOfWeek;
 
         // Jika parameter minggu tidak diberikan, atur minggu menjadi 0 (tanpa filtering per minggu)
@@ -134,35 +134,60 @@ exports.getDashboard = async (request, response) => {
             endDateOfWeek = new Date(startDateOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000); // Menghitung tanggal akhir minggu
         }
 
-        // Ambil data transaksi siswa, guru, dan kurir dalam rentang waktu yang sesuai
-        const whereClause = {};
-        if (startDateOfWeek && endDateOfWeek) {
-            whereClause.createdAt = {
-                [Op.between]: [startDateOfWeek, endDateOfWeek]
-            };
-        }
+        // Siapkan data untuk chart
+        let chartData = null; // Default chartData menjadi null jika chartType tidak disertakan
         
-        const allTransaksiSiswa = await transaksiSiswaModel.findAll({ where: whereClause });
-        const allTransaksiGuru = await transaksiGuruModel.findAll({ where: whereClause });
-        const allTransaksiKurir = await transaksiKurirModel.findAll({ where: whereClause });
+        if (chartType) { // Cek apakah chartType telah diberikan dalam permintaan
+            // Ambil data transaksi siswa, guru, dan kurir dalam rentang waktu yang sesuai
+            const whereClause = {};
+            if (startDateOfWeek && endDateOfWeek) {
+                whereClause.createdAt = {
+                    [Op.between]: [startDateOfWeek, endDateOfWeek]
+                };
+            }
+            
+            const allTransaksiSiswa = await transaksiSiswaModel.findAll({ where: whereClause });
+            const allTransaksiGuru = await transaksiGuruModel.findAll({ where: whereClause });
+            const allTransaksiKurir = await transaksiKurirModel.findAll({ where: whereClause });
 
-        // Gabungkan transaksi siswa dan guru menjadi satu array
-        const allTamu = await tamuModel.findAll();
-        const allTamuUmum = [...allTransaksiSiswa, ...allTransaksiGuru];
-        
-        // Hitung jumlah data
-        const tamuCount = allTamu.length;
-        const tamuUmumCount = allTamuUmum.length;
-        const layananKirimCount = allTransaksiKurir.length;
+            // Gabungkan transaksi siswa dan guru menjadi satu array
+            const allTamu = await tamuModel.findAll();
+            const allTamuUmum = [...allTransaksiSiswa, ...allTransaksiGuru];
+            
+            // Hitung jumlah data
+            const tamuCount = allTamu.length;
+            const tamuUmumCount = allTamuUmum.length;
+            const layananKirimCount = allTransaksiKurir.length;
+
+            const transaksiCounts = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDateOfWeek.getTime() + i * 24 * 60 * 60 * 1000);
+                const countSiswa = allTransaksiSiswa.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                const countGuru = allTransaksiGuru.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                const countKurir = allTransaksiKurir.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum: countSiswa + countGuru, layananKirim: countKurir });
+            }
+
+            // Logika untuk mempersiapkan data chart sesuai dengan jenis chart yang diminta
+            if (chartType === 'line') {
+                // Logic untuk chart garis
+                chartData = [
+                    { name: 'Layanan Kirim', data: transaksiCounts.map(transaction => transaction.layananKirim) },
+                    { name: 'Tamu Umum', data: transaksiCounts.map(transaction => transaction.tamuUmum) }
+                ]; // Susun data sesuai kebutuhan untuk chart garis
+            } else if (chartType === 'pie') {
+                // Logic untuk pie chart
+                chartData = {
+                    labels: ['Tamu Umum', 'Layanan Kirim'],
+                    data: [tamuUmumCount, layananKirimCount]
+                };
+            }
+        }
 
         return response.json({
             success: true,
             data: {
-                tamuUmum: allTamuUmum,
-                layananKirim: allTransaksiKurir,
-                tamuCount,
-                layananKirimCount,
-                tamuUmumCount,
+                chartData // Sertakan data chart dalam respons
             },
             message: 'Data loaded successfully',
         });
