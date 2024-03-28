@@ -165,14 +165,7 @@ exports.getDashboard = async (request, response) => {
                 const countSiswa = allTransaksiSiswa.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
                 const countGuru = allTransaksiGuru.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
                 const countKurir = allTransaksiKurir.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
-                // transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum: countSiswa + countGuru, layananKirim: countKurir });
-                const today = new Date();
-                const isToday = date.getDay() === today.getDay();
-
-                const tamuUmum = isToday ? countSiswa + countGuru : 0;
-                const layananKirim = isToday ? countKurir : 0;
-
-                transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum, layananKirim });
+                transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum: countSiswa + countGuru, layananKirim: countKurir });
             }
 
             // Logika untuk mempersiapkan data chart sesuai dengan jenis chart yang diminta
