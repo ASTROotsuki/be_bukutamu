@@ -69,11 +69,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
         const offset = (page - 1) * ITEMS_PER_PAGE;
 
         const filterOptions = {};
-        const orderOptions = {
-            order: [
-                ['createdAt', 'DESC'],
-            ],
-        };
+        const orderOptions = [['createdAt', 'DESC']];
 
         // Tambahkan filter berdasarkan tanggal jika startDate diberikan
         const startDate = request.query.startDate;
@@ -112,7 +108,7 @@ exports.getAllTransaksiSiswa = async (request, response) => {
                     require: true
                 },
             ],
-            order: orderOptions.order,
+            order: orderOptions,
         });
 
         const totalItems = transaksiSiswa.count;
@@ -172,59 +168,62 @@ exports.findTransaksiSiswa = async (request, response) => {
     })
 };
 
-exports.addTransaksiSiswa = (request, response) => {
-    upload(request, response, async (error) => {
-        if (error) {
-            return response.json({ message: error });
-        }
-        console.log("ini jalan")
+exports.addTransaksiSiswa = async (request, response) => {
+    try {
+        upload(request, response, async (error) => {
+            if (error) {
+                return response.json({ message: error });
+            }
+            console.log("ini jalan")
 
-        if (!request.file) {
-            return response.json({ message: `Nothing to Upload` });
-        }
+            if (!request.file) {
+                return response.json({ message: `Nothing to Upload` });
+            }
 
-        let newTamu = {
-            id_tamu: uuidv4(),
-            nama_tamu: request.body.nama_tamu,
-            no_tlp: request.body.no_tlp,
+            const newTamu = {
+                id_tamu: uuidv4(),
+                nama_tamu: request.body.nama_tamu,
+                no_tlp: request.body.no_tlp,
+            };
 
-        };
+            const newTransaksiSiswa = {
+                id_transaksiSiswa: uuidv4(),
+                id_tamu: newTamu.id_tamu,
+                id_siswa: request.body.id_siswa,
+                janji: request.body.janji,
+                jumlah_tamu: request.body.jumlah_tamu,
+                foto: request.file.filename,
+                keterangan: request.body.keterangan,
+            };
 
-        let newTransaksiSiswa = {
-            id_transaksiSiswa: uuidv4(),
-            id_tamu: newTamu.id_tamu,
-            id_siswa: request.body.id_siswa,
-            janji: request.body.janji,
-            jumlah_tamu: request.body.jumlah_tamu,
-            foto: request.file.filename,
-            keterangan: request.body.keterangan
+            await tamuModel.create(newTamu);
 
-        };
-        try {
-            const transaction = await sequelize.transaction();
+            try {
+                await transaksi_siswa.create(newTransaksiSiswa);
 
-            await tamuModel.create(newTamu, { transaction });
-            await transaksi_siswa.create(newTransaksiSiswa, { transaction });
-            await transaction.commit();
+                const siswa = await siswaModel.findOne({ where: { id_siswa: request.body.id_siswa } });
+                const email = siswa.email;
+                const namaSiswa = siswa.nama_siswa;
 
-            const siswa = await siswaModel.findOne({ where: { id_siswa: request.body.id_siswa } });
-            const email = siswa.email;
-            const namaSiswa = siswa.nama_siswa;
+                sendNotificationEmail(email, namaSiswa);
 
-            sendNotificationEmail(email, namaSiswa);
+                return response.json({
+                    success: true,
+                    message: `New form has been inserted`,
+                });
+            } catch (createTransaksiSiswaError) {
+                // If adding a transaksi siswa fails, rollback and delete tamu
+                await tamuModel.destroy({ where: { id_tamu: newTamu.id_tamu } });
 
-
-            return response.json({
-                success: true,
-                message: `New form has been inserted`
-            });
-        } catch (error) {
-            return response.status(400).json({
-                success: false,
-                message: error.message
-            });
-        }
-    });
+                throw createTransaksiSiswaError;
+            }
+        })
+    } catch (error) {
+        return response.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
 };
 
 function sendNotificationEmail(email, namaSiswa) {

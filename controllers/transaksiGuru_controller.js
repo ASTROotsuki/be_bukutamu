@@ -162,58 +162,64 @@ exports.findTransaksiGuru = async (request, response) => {
 };
 
 exports.addTransaksiGuru = (request, response) => {
-    upload(request, response, async (error) => {
-        if (error) {
-            return response.json({ message: error });
-        }
+    try {
+        upload(request, response, async (error) => {
+            if (error) {
+                return response.json({ message: error });
+            }
+            console.log("ini jalan")
 
-        if (!request.file) {
-            return response.json({ message: `Nothing to Upload` });
-        }
+            if (!request.file) {
+                return response.json({ message: `Nothing to Upload` });
+            }
 
-        let newTamu = {
-            id_tamu: uuidv4(),
-            nama_tamu: request.body.nama_tamu,
-            no_tlp: request.body.no_tlp,
+            let newTamu = {
+                id_tamu: uuidv4(),
+                nama_tamu: request.body.nama_tamu,
+                no_tlp: request.body.no_tlp,
 
-        };
+            };
 
-        let newTransaksiGuru = {
-            id_transaksiGuru: uuidv4(),
-            id_tamu: newTamu.id_tamu,
-            id_guru: request.body.id_guru,
-            janji: request.body.janji,
-            asal_instansi: request.body.asal_instansi,
-            jumlah_tamu: request.body.jumlah_tamu,
-            foto: request.file.filename,
-            keterangan: request.body.keterangan
+            let newTransaksiGuru = {
+                id_transaksiGuru: uuidv4(),
+                id_tamu: newTamu.id_tamu,
+                id_guru: request.body.id_guru,
+                janji: request.body.janji,
+                asal_instansi: request.body.asal_instansi,
+                jumlah_tamu: request.body.jumlah_tamu,
+                foto: request.file.filename,
+                keterangan: request.body.keterangan
 
-        };
-        try {
-            const transaction = await sequelize.transaction();
+            };
+            await tamuModel.create(newTamu);
 
-            await tamuModel.create(newTamu, { transaction });
-            await transaksi_guru.create(newTransaksiGuru, { transaction });
-            await transaction.commit();
+            try {
+                await transaksi_guru.create(newTransaksiGuru);
 
-            const guru = await guruModel.findOne({ where: { id_guru: request.body.id_guru } });
-            const email = guru.email;
-            const namaGuru = guru.nama_guru;
+                const guru = await guruModel.findOne({ where: { id_guru: request.body.id_guru } });
+                const email = guru.email;
+                const namaGuru = guru.nama_guru;
 
-            sendNotificationEmail(email, namaGuru);
+                sendNotificationEmail(email, namaGuru);
 
 
-            return response.json({
-                success: true,
-                message: `New form has been inserted`
-            });
-        } catch (error) {
-            return response.status(400).json({
-                success: false,
-                message: error.message
-            });
-        }
-    });
+                return response.json({
+                    success: true,
+                    message: `New form has been inserted`
+                });
+            } catch (createTransaksiGuru) {
+                // If adding a transaksi siswa fails, rollback and delete tamu
+                await tamuModel.destroy({ where: { id_tamu: newTamu.id_tamu } });
+
+                throw createTransaksiGuru;
+            }
+        })
+    } catch (error) {
+        return response.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
 };
 
 function sendNotificationEmail(email, namaGuru) {

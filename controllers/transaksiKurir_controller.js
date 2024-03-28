@@ -225,14 +225,16 @@ const verifyOTP = (otp, inputOTP) => {
 };
 
 exports.addTransaksiKurir = (request, response) => {
-    upload(request, response, async (error) => {
-        if (error) {
-            return response.json({ message: error });
-        }
+    try {
+        upload(request, response, async (error) => {
+            if (error) {
+                return response.json({ message: error });
+            }
+            console.log("ini jalan")
 
-        if (!request.file) {
-            return response.json({ message: `Nothing to Upload` });
-        }
+            if (!request.file) {
+                return response.json({ message: `Nothing to Upload` });
+            }
 
         const generatedOTP = generateOTP();
 
@@ -263,12 +265,10 @@ exports.addTransaksiKurir = (request, response) => {
             id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
             id_siswa: request.body.id_siswa
         };
-        try {
-            const transaction = await sequelize.transaction();
+        await tamuModel.create(newTamu);
 
-            await tamuModel.create(newTamu, { transaction });
-            await transaksi_kurir.create(newTransaksiKurir, { transaction });
-            await transaction.commit();
+            try {
+                await transaksi_kurir.create(newTransaksiKurir);
 
             if (request.body.id_guru) {
                 const guru = await guruModel.findOne({
@@ -321,21 +321,24 @@ exports.addTransaksiKurir = (request, response) => {
                     }
                 }
             }
-
-
             return response.json({
                 success: true,
                 message: `Kode OTP telah dikirim melalui email dan Form telah ditambahkan`
             });
-        } catch (error) {
+            } catch (createTransaksiKurirError) {
+                // If adding a transaksi siswa fails, rollback and delete tamu
+                await tamuModel.destroy({ where: { id_tamu: newTamu.id_tamu } });
+
+                throw createTransaksiKurirError;
+            }
+        })
+    } catch (error) {
             return response.status(400).json({
                 success: false,
                 message: error.message
             });
         }
-    });
-};
-
+    }
 exports.verifyOTP = async (request, response) => {
     const { id_transaksiKurir, inputOTP } = request.body;
 
