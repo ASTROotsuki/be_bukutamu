@@ -11,6 +11,7 @@ router.post("/add", transaksiKurirController.addTransaksiKurir)
 router.get("/getMoklet", transaksiKurirController.getAllMoklet)
 // app.post("/find",transaksiKurirController.findTransaksiKurir
 router.post("/verify-OTP", transaksiKurirController.verifyOTP)
+router.post("/update-status", transaksiKurirController.updateTransaksiKurirStatus)
 // app.delete("/delete/:id", transaksiSiswaController.deleteTransaksiSiswa)
 
 

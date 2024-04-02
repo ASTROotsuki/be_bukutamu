@@ -254,121 +254,114 @@ const verifyOTP = (otp, inputOTP) => {
 };
 
 exports.addTransaksiKurir = (request, response) => {
-    try {
-        upload(request, response, async (error) => {
-            if (error) {
-                return response.json({ message: error });
-            }
-            console.log("ini jalan")
+    upload(request, response, async (error) => {
+        if (error) {
+            return response.json({ message: error });
+        }
 
-            if (!request.file) {
-                return response.json({ message: `Nothing to Upload` });
-            }
+        if (!request.file) {
+            return response.json({ message: 'Nothing to Upload' });
+        }
 
-            const generatedOTP = generateOTP();
+        const generatedOTP = generateOTP();
 
-            let newTamu = {
-                id_tamu: uuidv4(),
-                nama_tamu: request.body.nama_tamu,
-                no_tlp: request.body.no_tlp,
+        let newTamu = {
+            id_tamu: uuidv4(),
+            nama_tamu: request.body.nama_tamu,
+            no_tlp: request.body.no_tlp,
 
-            };
-            let newTransaksiKurir = {
-                id_transaksiKurir: uuidv4(),
-                id_tamu: newTamu.id_tamu,
-                asal_instansi: request.body.asal_instansi,
-                tanggal_dititipkan: new Date(),
-                tanggal_diterima: request.body.tanggal_diterima,
-                foto: request.file.filename,
-                status: "Proses",
-                otp: generatedOTP
+        };
+        let newTransaksiKurir = {
+            id_transaksiKurir: uuidv4(),
+            id_tamu: newTamu.id_tamu,
+            asal_instansi: request.body.asal_instansi,
+            tanggal_dititipkan: new Date(),
+            tanggal_diterima: request.body.tanggal_diterima,
+            foto: request.file.filename,
+            status: "Proses",
+            otp: generatedOTP
 
-            };
-            const id_moklet = {
-                id_guru: request.body.id_guru,
-                id_siswa: request.body.id_siswa
-            };
-            let newTransaksiKurirGuru = {
-                id_kurirGuru: uuidv4(),
-                id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
-                id_guru: id_moklet
-            };
-            let newTransaksiKurirSiswa = {
-                id_kurirSiswa: uuidv4(),
-                id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
-                id_siswa: id_moklet
-            };
+        };
+        
+        let newTransaksiKurirGuru = {
+            id_kurirGuru: uuidv4(),
+            id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
+            id_guru: request.body.id_guru
+        };
+        let newTransaksiKurirSiswa = {
+            id_kurirSiswa: uuidv4(),
+            id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
+            id_siswa: request.body.id_siswa
+        };
+        try {
             await tamuModel.create(newTamu);
+            await transaksi_kurir.create(newTransaksiKurir);
 
-            try {
-                await transaksi_kurir.create(newTransaksiKurir);
-
-                if (request.body.id_guru) {
-                    const guru = await guruModel.findOne({
-                        where: { id_guru: request.body.id_guru }
-                    });
-                    if (guru) {
-                        await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                    }
-                }
-
-                if (request.body.id_siswa) {
-                    const siswa = await siswaModel.findOne({
-                        where: { id_siswa: request.body.id_siswa, email: email }
-                    });
-                    if (siswa) {
-                        await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                    }
-                }
-
-                if (request.body.id_guru) {
-                    const transaksiKurirGuru = await transaksiKurirGuruModel.findOne({
-                        where: { id_guru: request.body.id_guru }
-                    });
-
-                    if (transaksiKurirGuru) {
-                        const guru = await guruModel.findOne({
-                            where: { id_guru: transaksiKurirGuru.id_guru }
-                        });
-
-                        if (guru && guru.email) {
-                            await sendOTPByEmail(guru.email, generatedOTP);
-                        }
-                    }
-                }
-
-                if (request.body.id_siswa) {
-                    const transaksiKurirSiswa = await transaksiKurirSiswaModel.findOne({
-                        where: { id_siswa: request.body.id_siswa }
-                    });
-
-                    if (transaksiKurirSiswa) {
-                        const siswa = await siswaModel.findOne({
-                            where: { id_siswa: transaksiKurirSiswa.id_siswa }
-                        });
-
-                        if (siswa && siswa.email) {
-                            await sendOTPByEmail(siswa.email, generatedOTP);
-                        }
-                    }
-                }
-                return response.json({
-                    success: true,
-                    message: `Kode OTP telah dikirim melalui email dan Form telah ditambahkan`
+            if (request.body.id_guru) {
+                const guru = await guruModel.findOne({
+                    where: { id_guru: request.body.id_guru }
                 });
-            } catch (createTransaksiKurirError) {
-                await tamuModel.destroy({ where: { id_tamu: newTamu.id_tamu } });
-
-                throw createTransaksiKurirError;
+                if (guru) {
+                    // Menggunakan nomor telepon dari data Guru
+                    await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
+                }
             }
-        })
-    } catch (error) {
-        return response.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
-}
+
+            if (request.body.id_siswa) {
+                const siswa = await siswaModel.findOne({
+                    where: { id_siswa: request.body.id_siswa }
+                });
+                if (siswa) {
+                    // Menggunakan nomor telepon dari data Siswa
+                    await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
+                }
+            }
+
+            if (request.body.id_guru) {
+                const transaksiKurirGuru = await transaksiKurirGuruModel.findOne({
+                    where: { id_guru: request.body.id_guru }
+                });
+
+                if (transaksiKurirGuru) {
+                    const guru = await guruModel.findOne({
+                        where: { id_guru: transaksiKurirGuru.id_guru }
+                    });
+
+                    if (guru && guru.email) {
+                        await sendOTPByEmail(guru.email, generatedOTP);
+                    }
+                }
+            }
+
+            if (request.body.id_siswa) {
+                const transaksiKurirSiswa = await transaksiKurirSiswaModel.findOne({
+                    where: { id_siswa: request.body.id_siswa }
+                });
+
+                if (transaksiKurirSiswa) {
+                    const siswa = await siswaModel.findOne({
+                        where: { id_siswa: transaksiKurirSiswa.id_siswa }
+                    });
+
+                    if (siswa && siswa.email) {
+                        await sendOTPByEmail(siswa.email, generatedOTP);
+                    }
+                }
+            }
+
+
+            return response.json({
+                success: true,
+                message: `Kode OTP telah dikirim melalui email dan New form has been inserted`
+            });
+        } catch (error) {
+            return response.json({
+                success: false,
+                message: error.message
+            });
+        }
+    });
+};
 exports.verifyOTP = async (request, response) => {
     const { id_transaksiKurir, inputOTP } = request.body;
 
@@ -396,60 +389,32 @@ exports.verifyOTP = async (request, response) => {
 };
 
 
-exports.updateTransaksiKurir = async (request, response) => {
-    upload(request, response, async (err) => {
-        if (err) {
-            return response.json({ message: err });
+exports.updateTransaksiKurirStatus = async (request, response) => {
+    const { id_transaksiKurir, status } = request.body;
+
+    try {
+        const transaksi = await transaksi_kurir.findOne({
+            where: { id_transaksiKurir }
+        });
+
+        if (!transaksi) {
+            return response.json({
+                success: false,
+                message: `Transaksi dengan ID ${id_transaksiKurir} tidak ditemukan`
+            });
         }
 
-        let id_transaksiKurir = request.params.id;
-        let dataTransaksiKurir = {};
+        transaksi.status = status;
+        await transaksi.save();
 
-        if (!request.file) {
-            dataTransaksiKurir = {
-                asal_instansi: request.body.asal_instansi,
-                tanggal_dititipkan: new Date(),
-                tanggal_diterima: request.body.tanggal_diterima,
-                status: request.body.status
-            };
-        } else {
-            const selectedTransaksiKurir = await transaksi_kurir.findOne({
-                where: { id_transaksiKurir: id_transaksiKurir },
-            });
-
-            if (!selectedTransaksiKurir) {
-                return response.json({
-                    success: false,
-                    message: 'Transaksi Kurir not found',
-                });
-            }
-
-            const oldFotoTransaksiKurir = selectedTransaksiKurir.foto;
-            const pathImage = path.join(__dirname, `../foto`, oldFotoTransaksiKurir);
-
-            if (fs.existsSync(pathImage)) {
-                fs.unlink(pathImage, (error) => console.log(error));
-            }
-            dataTransaksiKurir = {
-                asal_instansi: request.body.asal_instansi,
-                tanggal_dititipkan: new Date(),
-                tanggal_diterima: request.body.tanggal_diterima,
-                foto: request.file.filename,
-                status: request.body.status
-            };
-        }
-        transaksi_kurir.update(dataTransaksiKurir, { where: { id_transaksiKurir: id_transaksiKurir } })
-            .then((result) => {
-                return response.json({
-                    success: true,
-                    message: `Data Form has been updated`,
-                });
-            })
-            .catch((error) => {
-                return response.json({
-                    success: false,
-                    message: error.message,
-                });
-            });
-    });
+        return response.json({
+            success: true,
+            message: `Transaksi dengan ID ${id_transaksiKurir} status updated to ${status}`
+        });
+    } catch (error) {
+        return response.json({
+            success: false,
+            message: error.message
+        });
+    }
 };
