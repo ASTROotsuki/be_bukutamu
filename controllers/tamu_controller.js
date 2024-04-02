@@ -130,8 +130,10 @@ exports.getDashboard = async (request, response) => {
         } else {
             // Tentukan rentang waktu berdasarkan minggu yang diminta
             const today = new Date();
-            startDateOfWeek = new Date(today.getTime() - (week * 7) * 24 * 60 * 60 * 1000); // Menghitung tanggal awal minggu
-            endDateOfWeek = new Date(startDateOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000); // Menghitung tanggal akhir minggu
+            const dayOfWeek = today.getDay(); // Mengembalikan hari dalam seminggu (0 untuk Minggu, 1 untuk Senin, dst.)
+            const daysToSubtract = (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + week * 7; // Jumlah hari yang harus dikurangkan dari hari ini untuk mencapai awal minggu
+            startDateOfWeek = new Date(today.getTime() - daysToSubtract * 24 * 60 * 60 * 1000); // Menghitung tanggal awal minggu
+            endDateOfWeek = new Date(today.getTime() + (6 - dayOfWeek) * 24 * 60 * 60 * 1000); // Menghitung tanggal akhir minggu
         }
 
         // Siapkan data untuk chart
@@ -139,12 +141,11 @@ exports.getDashboard = async (request, response) => {
         
         if (chartType) { // Cek apakah chartType telah diberikan dalam permintaan
             // Ambil data transaksi siswa, guru, dan kurir dalam rentang waktu yang sesuai
-            const whereClause = {};
-            if (startDateOfWeek && endDateOfWeek) {
-                whereClause.createdAt = {
+            const whereClause = {
+                createdAt: {
                     [Op.between]: [startDateOfWeek, endDateOfWeek]
-                };
-            }
+                }
+            };
             
             const allTransaksiSiswa = await transaksiSiswaModel.findAll({ where: whereClause });
             const allTransaksiGuru = await transaksiGuruModel.findAll({ where: whereClause });
@@ -161,12 +162,26 @@ exports.getDashboard = async (request, response) => {
 
             const transaksiCounts = [];
             for (let i = 0; i < 7; i++) {
-                const date = new Date(startDateOfWeek.getTime() + i * 24 * 60 * 60 * 1000);
-                const countSiswa = allTransaksiSiswa.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
-                const countGuru = allTransaksiGuru.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
-                const countKurir = allTransaksiKurir.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
-                transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum: countSiswa + countGuru, layananKirim: countKurir });
+                transaksiCounts.push({ tamuUmum: 0, layananKirim: 0});
+                // const date = new Date(startDateOfWeek.getTime() + i * 24 * 60 * 60 * 1000);
+                // const countSiswa = allTransaksiSiswa.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                // const countGuru = allTransaksiGuru.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                // const countKurir = allTransaksiKurir.filter(transaction => new Date(transaction.createdAt).getDate() === date.getDate()).length;
+                // transaksiCounts.push({ date: date.toLocaleDateString('en-US', { weekday: 'long' }), tamuUmum: countSiswa + countGuru, layananKirim: countKurir });
             }
+
+            let todayIndex = new Date().getDay();
+            if (todayIndex === 0) {
+                todayIndex = 6;
+            } else {
+                todayIndex -= 1;
+            }
+
+            const countSiswa = allTransaksiSiswa.filter(transaction => new Date(transaction.createdAt).getDay() === todayIndex).length;
+            const countGuru = allTransaksiGuru.filter(transaction => new Date(transaction.createdAt).getDay() === todayIndex).length;
+            const countKurir = allTransaksiKurir.filter(transaction => new Date(transaction.createdAt).getDay() === todayIndex).length;
+            transaksiCounts[todayIndex].tamuUmum = countSiswa + countGuru;
+            transaksiCounts[todayIndex].layananKirim = countKurir;
 
             // Logika untuk mempersiapkan data chart sesuai dengan jenis chart yang diminta
             if (chartType === 'line') {
@@ -182,6 +197,8 @@ exports.getDashboard = async (request, response) => {
                     data: [tamuUmumCount, layananKirimCount]
                 };
             }
+
+            console.log("Transaksi Counts:", transaksiCounts);
         }
 
         return response.json({
