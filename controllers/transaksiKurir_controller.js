@@ -151,42 +151,7 @@ exports.getAllTransaksiKurir = async (request, response) => {
         }
 
         const transformedData = transaksiKurir.rows.map(async row => {
-            const { id_transaksiKurir, asal_instansi, tanggal_dititipkan, tanggal_diterima, foto, status, createdAt, updatedAt, tamu, transaksiKurirGuruModel, transaksiKurirSiswaModel } = row;
-
-            let yangDiterima = {};
-
-            if (transaksiKurirGuruModel) {
-                const guru = await guruModel.findByPk(transaksiKurirGuruModel.id_guru);
-                yangDiterima = {
-                    id_guru: transaksiKurirGuruModel.id_guru,
-                    nama: guru ? guru.nama_guru : null,
-                    email: guru ? guru.email : null
-                };
-            } else if (transaksiKurirSiswaModel) {
-                const siswa = await siswaModel.findByPk(transaksiKurirSiswaModel.id_siswa);
-                yangDiterima = {
-                    id_siswa: transaksiKurirSiswaModel.id_siswa,
-                    nama: siswa ? siswa.nama_siswa : null,
-                    email: siswa ? siswa.email : null
-                };
-            }
-        
-            // const yangDiterima = {
-            //     nama: ( transaksiKurirGuruModel && transaksiKurirGuruModel.nama_guru) || (transaksiKurirSiswaModel && transaksiKurirSiswaModel.nama_siswa),
-            //     email: (transaksiKurirGuruModel && transaksiKurirGuruModel.email) || (transaksiKurirSiswaModel && transaksiKurirSiswaModel.email)  
-            // };
-        
-            // if (transaksiKurirGuruModel) {
-            //     // If the transaksiKurirGuruModel is present, then get the nama_guru from the guru table
-            //     const guru = guruModel.findByPk(transaksiKurirGuruModel.id_guru);
-            //     yangDiterima.nama_guru = guru && guru.nama_guru;
-            // }
-
-            // if (transaksiKurirSiswaModel) {
-            //     // If the transaksiKurirGuruModel is present, then get the nama_guru from the guru table
-            //     const siswa = siswaModel.findByPk(transaksiKurirSiswaModel.id_siswa);
-            //     yangDiterima.nama_siswa = siswa && siswa.nama_siswa;
-            // }
+            const { id_transaksiKurir, asal_instansi, tanggal_dititipkan, tanggal_diterima, foto, status, createdAt, updatedAt, tamu } = row;
         
             return {
                 id_transaksiKurir,
@@ -198,7 +163,6 @@ exports.getAllTransaksiKurir = async (request, response) => {
                 createdAt,
                 updatedAt,
                 tamu,
-                yangDiterima
             };
         });
 
@@ -260,7 +224,7 @@ exports.addTransaksiKurir = (request, response) => {
         }
 
         if (!request.file) {
-            return response.json({ message: 'Nothing to Upload' });
+            return response.json({ message: `Nothing to Upload` });
         }
 
         const generatedOTP = generateOTP();
@@ -282,77 +246,111 @@ exports.addTransaksiKurir = (request, response) => {
             otp: generatedOTP
 
         };
+
+        let newTransaksiKurirGuru = {};
+        let newTransaksiKurirSiswa = {};
+
+        if (request.body.id_moklet) {
+            const idMoklet = request.body.id_moklet;
+
+            const guru = await guruModel.findOne({ where: { id_guru: idMoklet } });
+            const siswa = await siswaModel.findOne({ where: { id_siswa: idMoklet } });
+
+            if (guru) {
+                newTransaksiKurirGuru = {
+                    id_kurirGuru: uuidv4(),
+                    id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
+                    id_guru: idMoklet
+                };
+                await sendOTPByEmail(guru.email, generatedOTP);
+            } else if (siswa) {
+                newTransaksiKurirSiswa = {
+                    id_kurirSiswa: uuidv4(),
+                    id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
+                    id_siswa: idMoklet
+                };
+                await sendOTPByEmail(siswa.email, generatedOTP);
+            }
+        }
         
-        let newTransaksiKurirGuru = {
-            id_kurirGuru: uuidv4(),
-            id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
-            id_guru: request.body.id_guru
-        };
-        let newTransaksiKurirSiswa = {
-            id_kurirSiswa: uuidv4(),
-            id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
-            id_siswa: request.body.id_siswa
-        };
+        // let newTransaksiKurirGuru = {
+        //     id_kurirGuru: uuidv4(),
+        //     id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
+        //     id_guru: request.body.id_guru
+        // };
+        // let newTransaksiKurirSiswa = {
+        //     id_kurirSiswa: uuidv4(),
+        //     id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
+        //     id_siswa: request.body.id_siswa
+        // };
         try {
             await tamuModel.create(newTamu);
             await transaksi_kurir.create(newTransaksiKurir);
 
-            if (request.body.id_guru) {
-                const guru = await guruModel.findOne({
-                    where: { id_guru: request.body.id_guru }
-                });
-                if (guru) {
-                    // Menggunakan nomor telepon dari data Guru
-                    await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-                }
+            if (newTransaksiKurirGuru.id_kurirGuru) {
+                await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
             }
 
-            if (request.body.id_siswa) {
-                const siswa = await siswaModel.findOne({
-                    where: { id_siswa: request.body.id_siswa }
-                });
-                if (siswa) {
-                    // Menggunakan nomor telepon dari data Siswa
-                    await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-                }
+            if (newTransaksiKurirSiswa.id_kurirSiswa) {
+                await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
             }
 
-            if (request.body.id_guru) {
-                const transaksiKurirGuru = await transaksiKurirGuruModel.findOne({
-                    where: { id_guru: request.body.id_guru }
-                });
+            // if (request.body.id_guru) {
+            //     const guru = await guruModel.findOne({
+            //         where: { id_guru: request.body.id_guru }
+            //     });
+            //     if (guru) {
+            //         // Menggunakan nomor telepon dari data Guru
+            //         await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
+            //     }
+            // }
 
-                if (transaksiKurirGuru) {
-                    const guru = await guruModel.findOne({
-                        where: { id_guru: transaksiKurirGuru.id_guru }
-                    });
+            // if (request.body.id_siswa) {
+            //     const siswa = await siswaModel.findOne({
+            //         where: { id_siswa: request.body.id_siswa }
+            //     });
+            //     if (siswa) {
+            //         // Menggunakan nomor telepon dari data Siswa
+            //         await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
+            //     }
+            // }
 
-                    if (guru && guru.email) {
-                        await sendOTPByEmail(guru.email, generatedOTP);
-                    }
-                }
-            }
+            // if (request.body.id_guru) {
+            //     const transaksiKurirGuru = await transaksiKurirGuruModel.findOne({
+            //         where: { id_guru: request.body.id_guru }
+            //     });
 
-            if (request.body.id_siswa) {
-                const transaksiKurirSiswa = await transaksiKurirSiswaModel.findOne({
-                    where: { id_siswa: request.body.id_siswa }
-                });
+            //     if (transaksiKurirGuru) {
+            //         const guru = await guruModel.findOne({
+            //             where: { id_guru: transaksiKurirGuru.id_guru }
+            //         });
 
-                if (transaksiKurirSiswa) {
-                    const siswa = await siswaModel.findOne({
-                        where: { id_siswa: transaksiKurirSiswa.id_siswa }
-                    });
+            //         if (guru && guru.email) {
+            //             await sendOTPByEmail(guru.email, generatedOTP);
+            //         }
+            //     }
+            // }
 
-                    if (siswa && siswa.email) {
-                        await sendOTPByEmail(siswa.email, generatedOTP);
-                    }
-                }
-            }
+            // if (request.body.id_siswa) {
+            //     const transaksiKurirSiswa = await transaksiKurirSiswaModel.findOne({
+            //         where: { id_siswa: request.body.id_siswa }
+            //     });
+
+            //     if (transaksiKurirSiswa) {
+            //         const siswa = await siswaModel.findOne({
+            //             where: { id_siswa: transaksiKurirSiswa.id_siswa }
+            //         });
+
+            //         if (siswa && siswa.email) {
+            //             await sendOTPByEmail(siswa.email, generatedOTP);
+            //         }
+            //     }
+            // }
 
 
             return response.json({
                 success: true,
-                message: `Kode OTP telah dikirim melalui email dan New form has been inserted`
+                message: 'Kode OTP telah dikirim melalui email dan New form has been inserted'
             });
         } catch (error) {
             return response.json({
@@ -362,6 +360,7 @@ exports.addTransaksiKurir = (request, response) => {
         }
     });
 };
+
 exports.verifyOTP = async (request, response) => {
     const { id_transaksiKurir, inputOTP } = request.body;
 
