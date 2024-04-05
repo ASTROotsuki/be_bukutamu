@@ -8,7 +8,7 @@ router.use(cors());
 //endpoint
 router.get("/get", transaksiKurirController.getAllTransaksiKurir)
 router.post("/add", transaksiKurirController.addTransaksiKurir)
-router.get("/getMoklet", transaksiKurirController.getAllMoklet)
+// router.get("/getMoklet", transaksiKurirController.getAllMoklet)
 // app.post("/find",transaksiKurirController.findTransaksiKurir
 router.post("/verify-OTP", transaksiKurirController.verifyOTP)
 router.post("/update-status", transaksiKurirController.updateTransaksiKurirStatus)
