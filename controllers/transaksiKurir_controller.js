@@ -1,84 +1,27 @@
-const { transaksi_kurir } = require('../models/index');
-const tamuModel = require('../models/index').tamu;
-const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa;
-const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru;
+const { transaksi_kurir } = require('../models/index')
+const tamuModel = require('../models/index').tamu
+const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa
+const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru
 const siswaModel = require('../models/index').siswa;
-const guruModel = require('../models/index').guru;
-const otpModel = require('../models/index').otp;
-const otpGenerator = require('otp-generator');
-const speakeasy = require('speakeasy')
-const { Op } = require(`sequelize`)
 const nodemailer = require('nodemailer');
-const cron = require('node-cron');
+const speakeasy = require('speakeasy');
+const guruModel = require('../models/index').guru
 const multer = require('multer');
 const moment = require('moment');
+const otpModel = require('../models/index').otp;
+const otpGenerator = require('otp-generator');
+const { Op } = require(sequelize)
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const wa = require('@open-wa/wa-automate')
-const dotenv = require('dotenv');
 const { error } = require('console');
-const upload = require('./upload_foto').single(`foto`)
-require('moment-timezone');
+const upload = require('./upload-foto').single(foto)
 
+const dotenv = require('dotenv')
+const db = require('../models/index')
 dotenv.config();
 
-const deleteOldData = async () => {
-    try {
-        const today = moment().date();
-        const dayOfMonth = 1;
 
-        // Jika hari ini lebih besar dari tanggal 8, maka gunakan bulan berikutnya
-        const targetMonth = today >= dayOfMonth ? moment().add(1, 'months') : moment();
-
-        // Set tanggal menjadi 1
-        targetMonth.date(dayOfMonth);
-
-        const targetDate = targetMonth.format('YYYY-MM-DD HH:mm:ss');
-
-        console.log('Tanggal penghapusan otomatis:', targetDate);
-
-        const result = await transaksi_kurir.destroy({
-            where: {
-                createdAt: {
-                    [Op.lt]: targetDate,
-                },
-            },
-        });
-
-        console.log('Baris yang dihapus:', result);
-
-        console.log('Data lama berhasil dihapus');
-    } catch (error) {
-        console.error('Error saat menghapus data lama:', error);
-    }
-};
-
-cron.schedule('0 0 1 * *', async () => {
-    console.log('Cron job untuk penghapusan otomatis dimulai');
-    await deleteOldData();
-    console.log('Penghapusan otomatis selesai');
-});
-
-
-exports.getAllMoklet = async (request, response) => {
-    try {
-        const allSiswa = await siswaModel.findAll();
-        const allGuru = await guruModel.findAll();
-        const allData = [...allSiswa, ...allGuru];
-
-        return response.json({
-            success: true,
-            data: {
-                data: allData
-            },
-            message: 'All students and teachers data loaded successfully',
-        });
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ message: error.message });
-    }
-}
 
 exports.getAllTransaksiKurir = async (request, response) => {
     try {
@@ -107,51 +50,40 @@ exports.getAllTransaksiKurir = async (request, response) => {
 
             filterOptions[Op.or] = [
                 { '$tamu.nama_tamu$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
-                { '$siswa.nama_siswa': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
-                { '$guru.nama_guru': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
+                { '$siswa.nama_siswa$1': { [Op.iLike]: `%${lowercaseSearchQuery}%` } },
+                { '$guru.nama_guru$': { [Op.iLike]: `%${lowercaseSearchQuery}%` } }
             ];
         }
 
-        let transaksiKurir = await transaksi_kurir.findAndCountAll({
-            offset: offset,
-            limit: ITEMS_PER_PAGE,
-            where: filterOptions,
-            include: [
-                {
-                    model: tamuModel,
-                    require: true
-                },
-                {
-                    model: transaksiKurirGuruModel,
-                    require: true,
-                },
-                {
-                    model: transaksiKurirSiswaModel,
-                    require: true
-                },
-            ],
-        });
+        // Ambil data transaksiKurirGuru dan transaksiKurirSiswa
+        const [transaksiKurirGuru, transaksiKurirSiswa] = await Promise.all([
+            transaksiKurirGuruModel.findAll({ limit: ITEMS_PER_PAGE, offset: offset }),
+            transaksiKurirSiswaModel.findAll({ limit: ITEMS_PER_PAGE, offset: offset })
+        ]);
 
-        const totalItems = transaksiKurir.count;
+        // Gabungkan data transaksiKurirGuru dan transaksiKurirSiswa menjadi satu array
+        const transaksiKurir = [...transaksiKurirGuru, ...transaksiKurirSiswa];
 
-        // if (totalItems === 0) {
-        //     return response.status(404).json({
-        //         success: false,
-        //         message: 'Data not found'
-        //     });
-        // }
+        const totalItems = transaksiKurir.length;
 
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
-        if (transaksiKurir.rows.length === 0) {
+        if (transaksiKurir.length === 0) {
             return response.status(404).json({
                 success: false,
                 message: "Data masih belum ada"
             });
         }
 
-        const transformedData = transaksiKurir.rows.map(async row => {
+        const transformedData = transaksiKurir.map(row => {
             const { id_transaksiKurir, asal_instansi, tanggal_dititipkan, tanggal_diterima, foto, status, createdAt, updatedAt, tamu } = row;
+        
+            let id_moklet;
+            if (row instanceof transaksiKurirGuruModel) {
+                id_moklet = row.id_guru;
+            } else if (row instanceof transaksiKurirSiswaModel) {
+                id_moklet = row.id_siswa;
+            }
         
             return {
                 id_transaksiKurir,
@@ -163,14 +95,13 @@ exports.getAllTransaksiKurir = async (request, response) => {
                 createdAt,
                 updatedAt,
                 tamu,
+                id_moklet
             };
         });
 
-        const transformedResults = await Promise.all(transformedData);
-
         return response.status(200).json({
             success: true,
-            data: transformedResults,
+            data: transformedData,
             pagination: {
                 currentPage: page,
                 totalItems: totalItems,
@@ -181,6 +112,37 @@ exports.getAllTransaksiKurir = async (request, response) => {
     } catch (error) {
         console.error(error);
         return response.status(500).json({ message: error.message });
+    }
+};
+
+
+exports.updateTransaksiKurirStatus = async (request, response) => {
+    const { id_transaksiKurir, status } = request.body;
+
+    try {
+        const transaksi = await transaksi_kurir.findOne({
+            where: { id_transaksiKurir }
+        });
+
+        if (!transaksi) {
+            return response.json({
+                success: false,
+                message: `Transaksi dengan ID ${id_transaksiKurir} tidak ditemukan`
+            });
+        }
+
+        transaksi.status = status;
+        await transaksi.save();
+
+        return response.json({
+            success: true,
+            message: `Transaksi dengan ID ${id_transaksiKurir} status updated to ${status}`
+        });
+    } catch (error) {
+        return response.json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
@@ -272,17 +234,6 @@ exports.addTransaksiKurir = (request, response) => {
                 await sendOTPByEmail(siswa.email, generatedOTP);
             }
         }
-        
-        // let newTransaksiKurirGuru = {
-        //     id_kurirGuru: uuidv4(),
-        //     id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
-        //     id_guru: request.body.id_guru
-        // };
-        // let newTransaksiKurirSiswa = {
-        //     id_kurirSiswa: uuidv4(),
-        //     id_transaksiKurir: newTransaksiKurir.id_transaksiKurir,
-        //     id_siswa: request.body.id_siswa
-        // };
         try {
             await tamuModel.create(newTamu);
             await transaksi_kurir.create(newTransaksiKurir);
@@ -295,62 +246,10 @@ exports.addTransaksiKurir = (request, response) => {
                 await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
             }
 
-            // if (request.body.id_guru) {
-            //     const guru = await guruModel.findOne({
-            //         where: { id_guru: request.body.id_guru }
-            //     });
-            //     if (guru) {
-            //         // Menggunakan nomor telepon dari data Guru
-            //         await transaksiKurirGuruModel.create(newTransaksiKurirGuru);
-            //     }
-            // }
-
-            // if (request.body.id_siswa) {
-            //     const siswa = await siswaModel.findOne({
-            //         where: { id_siswa: request.body.id_siswa }
-            //     });
-            //     if (siswa) {
-            //         // Menggunakan nomor telepon dari data Siswa
-            //         await transaksiKurirSiswaModel.create(newTransaksiKurirSiswa);
-            //     }
-            // }
-
-            // if (request.body.id_guru) {
-            //     const transaksiKurirGuru = await transaksiKurirGuruModel.findOne({
-            //         where: { id_guru: request.body.id_guru }
-            //     });
-
-            //     if (transaksiKurirGuru) {
-            //         const guru = await guruModel.findOne({
-            //             where: { id_guru: transaksiKurirGuru.id_guru }
-            //         });
-
-            //         if (guru && guru.email) {
-            //             await sendOTPByEmail(guru.email, generatedOTP);
-            //         }
-            //     }
-            // }
-
-            // if (request.body.id_siswa) {
-            //     const transaksiKurirSiswa = await transaksiKurirSiswaModel.findOne({
-            //         where: { id_siswa: request.body.id_siswa }
-            //     });
-
-            //     if (transaksiKurirSiswa) {
-            //         const siswa = await siswaModel.findOne({
-            //             where: { id_siswa: transaksiKurirSiswa.id_siswa }
-            //         });
-
-            //         if (siswa && siswa.email) {
-            //             await sendOTPByEmail(siswa.email, generatedOTP);
-            //         }
-            //     }
-            // }
-
 
             return response.json({
                 success: true,
-                message: 'Kode OTP telah dikirim melalui email dan New form has been inserted'
+                message: `Kode OTP telah dikirim melalui email dan New form has been inserted`
             });
         } catch (error) {
             return response.json({
@@ -384,36 +283,5 @@ exports.verifyOTP = async (request, response) => {
         }
     } catch (error) {
         return response.json({ success: false, message: error.message });
-    }
-};
-
-
-exports.updateTransaksiKurirStatus = async (request, response) => {
-    const { id_transaksiKurir, status } = request.body;
-
-    try {
-        const transaksi = await transaksi_kurir.findOne({
-            where: { id_transaksiKurir }
-        });
-
-        if (!transaksi) {
-            return response.json({
-                success: false,
-                message: `Transaksi dengan ID ${id_transaksiKurir} tidak ditemukan`
-            });
-        }
-
-        transaksi.status = status;
-        await transaksi.save();
-
-        return response.json({
-            success: true,
-            message: `Transaksi dengan ID ${id_transaksiKurir} status updated to ${status}`
-        });
-    } catch (error) {
-        return response.json({
-            success: false,
-            message: error.message
-        });
     }
 };
