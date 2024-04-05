@@ -15,7 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
-const upload = require('./upload-foto').single(foto)
+const upload = require('../controllers/upload_foto').single(foto)
 
 const dotenv = require('dotenv')
 const db = require('../models/index')
