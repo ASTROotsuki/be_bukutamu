@@ -1,7 +1,7 @@
 const { transaksi_kurir } = require('../models/index');
 const tamuModel = require('../models/index').tamu;
-const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswa;
-const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGuru;
+const transaksiKurirSiswaModel = require('../models/index').transaksi_kurirSiswas;
+const transaksiKurirGuruModel = require('../models/index').transaksi_kurirGurus;
 const siswaModel = require('../models/index').siswa;
 const guruModel = require('../models/index').guru;
 const otpGenerator = require('otp-generator');
