@@ -3,7 +3,7 @@ const {
   Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class transaksi_kurirSiswas extends Model {
+  class transaksi_kurirSiswa extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -11,11 +11,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      transaksi_kurirSiswas.belongsTo(models.transaksi_kurir, { foreignKey: 'id_transaksiKurir' });
-      transaksi_kurirSiswas.belongsTo(models.siswa, { foreignKey: 'id_siswa' });
+      transaksi_kurirSiswa.belongsTo(models.transaksi_kurir, { foreignKey: 'id_transaksiKurir' });
+      transaksi_kurirSiswa.belongsTo(models.siswa, { foreignKey: 'id_siswa' });
     }
   }
-  transaksi_kurirSiswas.init({
+  transaksi_kurirSiswa.init({
     id_kurirSiswa: {
       type: DataTypes.UUID,
       primaryKey: true,
@@ -24,8 +24,8 @@ module.exports = (sequelize, DataTypes) => {
     id_siswa: DataTypes.UUID
   }, {
     sequelize,
-    modelName: 'transaksi_kurirSiswas',
-    tableName: 'transaksi_kurirSiswas'
+    modelName: 'transaksi_kurirSiswa',
+    tableName: 'transaksi_kurirSiswa'
   });
-  return transaksi_kurirSiswas;
+  return transaksi_kurirSiswa;
 };
