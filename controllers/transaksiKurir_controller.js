@@ -132,13 +132,6 @@ exports.getAllTransaksiKurir = async (request, response) => {
 
         const totalItems = transaksiKurir.count;
 
-        // if (totalItems === 0) {
-        //     return response.status(404).json({
-        //         success: false,
-        //         message: 'Data not found'
-        //     });
-        // }
-
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
         if (transaksiKurir.rows.length === 0) {
